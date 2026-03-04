@@ -27,13 +27,17 @@ console.log("--- Environment Variable Check ---");
 requiredVars.forEach(v => {
     console.log(`  ${v}: ${process.env[v] ? "✅ SET" : "❌ MISSING"}`);
 });
-console.log("----------------------------------");
 
 const app = express();
 app.use(cors({
     origin: ["http://localhost:3000", "https://sentitube.com", "https://www.sentitube.com"]
 }));
 app.use(express.json({ limit: "10mb" }));
+
+// Health check endpoint (required by hosting platforms)
+app.get("/", (req, res) => {
+    res.json({ status: "ok", service: "Sentitube Backend" });
+});
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
