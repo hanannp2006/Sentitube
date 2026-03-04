@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node server.js",
+    "next:start": "next start",
     "lint": "eslint",
     "server": "node server.js"
   },

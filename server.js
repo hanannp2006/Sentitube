@@ -8,7 +8,9 @@ import { createClient } from "@supabase/supabase-js";
 dotenv.config({ path: ".env.local" });
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: ["http://localhost:3000", "https://sentitube.com", "https://www.sentitube.com"]
+}));
 app.use(express.json({ limit: "10mb" }));
 
 const openai = new OpenAI({
