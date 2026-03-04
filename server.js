@@ -11,6 +11,21 @@ if (fs.existsSync(".env.local")) {
     dotenv.config({ path: ".env.local" });
 }
 
+// --- Startup Env Check (helps debug Railway) ---
+const requiredVars = [
+    "OPENAI_API_KEY",
+    "YOUTUBE_API_KEY",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+];
+console.log("--- Environment Variable Check ---");
+requiredVars.forEach(v => {
+    console.log(`  ${v}: ${process.env[v] ? "✅ SET" : "❌ MISSING"}`);
+});
+console.log("----------------------------------");
+
 const app = express();
 app.use(cors({
     origin: ["http://localhost:3000", "https://sentitube.com", "https://www.sentitube.com"]
