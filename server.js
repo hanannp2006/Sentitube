@@ -11,6 +11,9 @@ if (fs.existsSync(".env.local")) {
     dotenv.config({ path: ".env.local" });
 }
 
+// Debug: Show ALL available env var keys
+console.log("ALL ENV KEYS:", Object.keys(process.env).join(", "));
+
 // --- Startup Env Check (helps debug Railway) ---
 const requiredVars = [
     "OPENAI_API_KEY",
