@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/utils/supabase/client';
 import styles from './signin.module.css';
