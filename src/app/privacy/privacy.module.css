@@ -1,0 +1,146 @@
+.container {
+    min-height: 100vh;
+    background: #050A0F;
+    color: #E2E8F0;
+    padding: 8rem 2rem 6rem;
+    position: relative;
+    overflow-x: hidden;
+}
+
+.content {
+    max-width: 850px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 10;
+}
+
+.backHome {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #94A3B8;
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 3rem;
+    transition: color 0.2s ease;
+}
+
+.backHome:hover {
+    color: #FF0000;
+}
+
+.header {
+    margin-bottom: 4rem;
+}
+
+.title {
+    font-size: clamp(2.5rem, 6vw, 3.5rem);
+    font-weight: 900;
+    color: white;
+    margin-bottom: 1rem;
+    letter-spacing: -0.03em;
+}
+
+.lastUpdated {
+    color: #FF0000;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.section {
+    margin-bottom: 3rem;
+}
+
+.sectionTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sectionTitle span {
+    color: #FF0000;
+}
+
+.text {
+    line-height: 1.8;
+    color: #94A3B8;
+    font-size: 1.05rem;
+    margin-bottom: 1.5rem;
+}
+
+.list {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 1.5rem;
+}
+
+.listItem {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+    color: #E2E8F0;
+}
+
+.listItem::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: white;
+    font-weight: bold;
+}
+
+.contactBox {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-top: 4rem;
+}
+
+.contactEmail {
+    color: white;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    transition: color 0.2s ease;
+}
+
+.contactEmail:hover {
+    color: #FF0000;
+}
+
+.glow {
+    position: absolute;
+    top: 10%;
+    right: -10%;
+    width: 60vw;
+    height: 60vh;
+    background: radial-gradient(circle, rgba(255, 0, 0, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 6rem 1.5rem 4rem;
+    }
+
+    .title {
+        font-size: 2.25rem;
+    }
+
+    .sectionTitle {
+        font-size: 1.25rem;
+    }
+
+    .text {
+        font-size: 1rem;
+    }
+}

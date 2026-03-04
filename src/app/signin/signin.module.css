@@ -1,0 +1,88 @@
+.authContainer {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    background-color: #0B1C2D;
+}
+
+.logoText {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 2.5rem;
+    letter-spacing: -0.02em;
+}
+
+.logoText span {
+    color: #FF0000;
+}
+
+.authHeader {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.authTitle {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+.authSubtitle {
+    font-size: 1rem;
+    color: #94A3B8;
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+.googleButton {
+    width: 100%;
+    max-width: 320px;
+    /* Limit width for a cleaner look */
+    background-color: white;
+    color: #0F172A;
+    padding: 1rem 1.5rem;
+    /* More horizontal padding */
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    /* Forces one line */
+}
+
+@media (max-width: 480px) {
+    .googleButton {
+        max-width: 100%;
+        /* Use full width on very small screens to fit text */
+        font-size: 0.95rem;
+        /* Slightly smaller font if needed */
+        padding: 0.9rem 1.25rem;
+    }
+
+    .authTitle {
+        font-size: 1.75rem;
+    }
+
+    .authSubtitle {
+        font-size: 0.9rem;
+        padding: 0 1rem;
+    }
+}
+
+.googleButton:hover {
+    background-color: #F8FAFC;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+}
