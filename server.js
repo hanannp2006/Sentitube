@@ -1,11 +1,15 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import OpenAI from "openai";
 import { google } from "googleapis";
 import { createClient } from "@supabase/supabase-js";
+import fs from "fs";
 
-dotenv.config({ path: ".env.local" });
+// Only load .env.local in local development (Railway injects env vars directly)
+if (fs.existsSync(".env.local")) {
+    const dotenv = await import("dotenv");
+    dotenv.config({ path: ".env.local" });
+}
 
 const app = express();
 app.use(cors({
