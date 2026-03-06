@@ -20,6 +20,9 @@
     display: flex;
     flex-direction: column;
     margin-top: 40px;
+    width: 100%;
+    max-width: 800px;
+    align-items: center;
 }
 
 /* Filter Sidebar - Now the primary left navigation for this page */
@@ -190,6 +193,7 @@
 .commentCard {
     width: 100%;
     max-width: 700px;
+    box-sizing: border-box;
     padding: 24px;
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -443,6 +447,9 @@
     font-size: 1rem;
     line-height: 1.6;
     color: #fff;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .loadingContainer {
@@ -529,6 +536,8 @@
 
     .commentCard {
         padding: 20px;
+        width: 100%;
+        max-width: 100%;
     }
 
     .replyCard,
