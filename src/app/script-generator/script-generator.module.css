@@ -423,7 +423,7 @@
 @media (max-width: 1024px) {
     .main {
         margin-left: 0;
-        padding: 88px 20px 220px;
+        padding: 80px 20px 180px;
     }
 
     .chatBarWrapper {
@@ -432,10 +432,54 @@
     }
 
     .heroTitle {
-        font-size: 2rem;
+        font-size: 1.7rem;
     }
 
     .optionsRow {
-        flex-direction: column;
+        flex-direction: row;
+        gap: 12px;
+        flex-wrap: nowrap;
+        margin-bottom: 16px;
+    }
+
+    .dropdownWrapper {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .dropdownTrigger {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+
+    .optionLabel {
+        font-size: 0.6rem;
+    }
+
+    .chatBarCard {
+        max-width: 95%;
+        padding: 14px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .heroTitle {
+        font-size: 1.5rem;
+    }
+
+    .optionsRow {
+        gap: 8px;
+    }
+
+    .dropdownTrigger {
+        padding: 5px 8px;
+        gap: 4px;
+        font-size: 0.7rem;
+    }
+
+    .chatBarCard {
+        width: 100%;
+        border-radius: 12px;
+        padding: 12px;
     }
 }
