@@ -331,40 +331,6 @@ export default function SmartRepliesPage() {
 
     return (
         <div className={styles.container}>
-            {/* Primary Left Sidebar for Filters */}
-            <aside className={styles.filterSidebar}>
-                <div style={{ padding: '0 12px 32px' }}>
-                    <div style={{
-                        fontSize: '1.25rem',
-                        fontWeight: '700',
-                        background: 'linear-gradient(135deg, #3b82f6, #ef4444)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        letterSpacing: '-0.02em'
-                    }}>
-                        Sentitube AI
-                    </div>
-                </div>
-
-                <div className={styles.filterHeading}>Filter Comments</div>
-                {[
-                    { id: 'ALL', label: 'All Comments', class: styles.filterAll, dot: styles.dotAll },
-                    { id: 'POSITIVE', label: 'Positive', class: styles.filterPositive, dot: styles.dotPositive },
-                    { id: 'NEGATIVE', label: 'Negative', class: styles.filterNegative, dot: styles.dotNegative },
-                    { id: 'NEUTRAL', label: 'Neutral', class: styles.filterNeutral, dot: styles.dotNeutral },
-                    { id: 'QUESTION', label: 'Questions', class: styles.filterQuestion, dot: styles.dotQuestion },
-                ].map(filter => (
-                    <button
-                        key={filter.id}
-                        className={`${styles.filterBtn} ${filter.class} ${activeFilter === filter.id ? styles.filterBtnActive : ''}`}
-                        onClick={() => setActiveFilter(filter.id)}
-                    >
-                        <div className={`${styles.filterDot} ${filter.dot}`} />
-                        {filter.label}
-                    </button>
-                ))}
-            </aside>
-
             <main className={styles.maxContainer}>
                 <Link href="/dashboard" className={styles.backBtn}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -376,6 +342,40 @@ export default function SmartRepliesPage() {
 
                 <h1 className={styles.title}>AI Smart Reply Generator</h1>
                 <p className={styles.subtitle}>Analyzing audience sentiments for {videoTitle}</p>
+
+                {/* Primary Left Sidebar for Filters */}
+                <aside className={styles.filterSidebar}>
+                    <div className={styles.sidebarBrand}>
+                        <div style={{
+                            fontSize: '1.25rem',
+                            fontWeight: '700',
+                            background: 'linear-gradient(135deg, #3b82f6, #ef4444)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            letterSpacing: '-0.02em'
+                        }}>
+                            Sentitube AI
+                        </div>
+                    </div>
+
+                    <div className={styles.filterHeading}>Filter Comments</div>
+                    {[
+                        { id: 'ALL', label: 'All Comments', class: styles.filterAll, dot: styles.dotAll },
+                        { id: 'POSITIVE', label: 'Positive', class: styles.filterPositive, dot: styles.dotPositive },
+                        { id: 'NEGATIVE', label: 'Negative', class: styles.filterNegative, dot: styles.dotNegative },
+                        { id: 'NEUTRAL', label: 'Neutral', class: styles.filterNeutral, dot: styles.dotNeutral },
+                        { id: 'QUESTION', label: 'Questions', class: styles.filterQuestion, dot: styles.dotQuestion },
+                    ].map(filter => (
+                        <button
+                            key={filter.id}
+                            className={`${styles.filterBtn} ${filter.class} ${activeFilter === filter.id ? styles.filterBtnActive : ''}`}
+                            onClick={() => setActiveFilter(filter.id)}
+                        >
+                            <div className={`${styles.filterDot} ${filter.dot}`} />
+                            {filter.label}
+                        </button>
+                    ))}
+                </aside>
 
                 {error ? (
                     <div className={styles.loadingContainer}>

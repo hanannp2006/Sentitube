@@ -469,8 +469,70 @@
     }
 }
 
-@media (max-width: 640px) {
+.sidebarBrand {
+    padding: 0 12px 32px;
+}
+
+@media (max-width: 1024px) {
+    .maxContainer {
+        margin-left: 0;
+        padding: 40px 16px;
+    }
+
+    .filterSidebar {
+        position: static;
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        background: transparent;
+        border-right: none;
+        padding: 0 0 24px;
+        gap: 8px;
+        overflow-x: auto;
+        /* Horizontal scroll for filters */
+        scrollbar-width: none;
+        /* Hide scrollbar for clean look */
+        -ms-overflow-style: none;
+        margin-bottom: 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .filterSidebar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .sidebarBrand,
+    .filterHeading {
+        display: none;
+    }
+
+    .filterBtn {
+        width: auto;
+        flex-shrink: 0;
+        padding: 8px 16px;
+        font-size: 0.8rem;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
     .title {
         font-size: 1.75rem;
+    }
+
+    .subtitle {
+        font-size: 1rem;
+        margin-bottom: 32px;
+    }
+
+    .commentsContainer {
+        gap: 20px;
+    }
+
+    .commentCard {
+        padding: 20px;
+    }
+
+    .replyCard,
+    .repliesContainer {
+        width: 95%;
     }
 }
