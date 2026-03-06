@@ -508,4 +508,39 @@
         padding: 12px 32px;
         font-size: 0.9rem;
     }
+
+    /* Mobile Content Idea Card Improvements */
+    .ideaCard {
+        padding: 24px;
+        gap: 16px;
+    }
+
+    .ideaTop {
+        flex-direction: column-reverse;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+
+    .ideaTitle {
+        font-size: 1.15rem;
+        line-height: 1.3;
+    }
+
+    .engagementTag {
+        align-self: flex-start;
+        margin-bottom: 4px;
+        padding: 4px 10px;
+        font-size: 0.8rem;
+    }
+
+    .ideaDesc {
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+    }
+
+    .generateScriptBtn {
+        padding: 12px 20px;
+        font-size: 0.85rem;
+    }
 }
