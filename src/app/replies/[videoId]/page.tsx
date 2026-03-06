@@ -40,51 +40,74 @@ export default function SmartRepliesPage() {
     const [userId, setUserId] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState('ALL');
 
+    // Direct post state (for post-OAuth immediate posting)
+    const [directPostStatus, setDirectPostStatus] = useState<'idle' | 'posting' | 'success' | 'error'>('idle');
+
     const hasFetched = useRef(false);
+    const pendingHandled = useRef(false);
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-    // Get user ID from Supabase
+    // Get user ID from Supabase and handle pending post BEFORE fetching comments
     useEffect(() => {
         const supabase = createClient();
-        supabase.auth.getUser().then(({ data }) => {
+        supabase.auth.getUser().then(async ({ data }) => {
             if (data.user) {
                 setUserId(data.user.id);
-                // Trigger fetch once we have the user ID to ensure we can check "alreadyReplied"
+                const currentUserId = data.user.id;
+
+                // Check for pending post from OAuth callback FIRST
+                const pendingRaw = sessionStorage.getItem('pendingPost');
+                if (pendingRaw && !pendingHandled.current) {
+                    pendingHandled.current = true;
+                    try {
+                        const pending = JSON.parse(pendingRaw);
+                        sessionStorage.removeItem('pendingPost');
+
+                        if (pending.commentId && pending.replyText) {
+                            // Post the reply immediately — no need to re-fetch comments
+                            setDirectPostStatus('posting');
+                            setLoading(false);
+
+                            const res = await fetch(`${backendUrl}/post-reply`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    userId: currentUserId,
+                                    commentId: pending.commentId,
+                                    replyText: pending.replyText,
+                                }),
+                            });
+                            const result = await res.json();
+
+                            if (res.ok && result.success) {
+                                setDirectPostStatus('success');
+                            } else {
+                                setDirectPostStatus('error');
+                            }
+
+                            // After a short delay, load comments normally
+                            setTimeout(() => {
+                                if (videoId && !hasFetched.current) {
+                                    hasFetched.current = true;
+                                    fetchAndCategorize(currentUserId);
+                                }
+                            }, 2000);
+                            return;
+                        }
+                    } catch {
+                        sessionStorage.removeItem('pendingPost');
+                    }
+                }
+
+                // Normal flow: no pending post, fetch comments
                 if (videoId && !hasFetched.current) {
                     hasFetched.current = true;
-                    fetchAndCategorize(data.user.id);
+                    fetchAndCategorize(currentUserId);
                 }
             }
         });
     }, [videoId]);
 
-    useEffect(() => {
-        // This is a fallback in case Supabase auth resolves after the videoId effect
-        if (videoId && userId && !hasFetched.current) {
-            hasFetched.current = true;
-            fetchAndCategorize(userId);
-        }
-    }, [videoId, userId]);
-
-    // Check for pending post after OAuth callback
-    useEffect(() => {
-        const pendingRaw = sessionStorage.getItem('pendingPost');
-        if (pendingRaw && userId && categorizedComments.length > 0) {
-            try {
-                const pending = JSON.parse(pendingRaw);
-                sessionStorage.removeItem('pendingPost');
-                // Find the matching comment index
-                const idx = categorizedComments.findIndex(c => c.id === pending.commentId);
-                if (idx !== -1 && pending.replyText) {
-                    setSuggestions(prev => ({ ...prev, [idx]: pending.replyText }));
-                    // Auto-post after OAuth
-                    executePost(idx, pending.commentId, pending.replyText);
-                }
-            } catch {
-                sessionStorage.removeItem('pendingPost');
-            }
-        }
-    }, [userId, categorizedComments]);
 
     const fetchAndCategorize = async (currentUserId?: string) => {
         try {
@@ -342,6 +365,35 @@ export default function SmartRepliesPage() {
 
                 <h1 className={styles.title}>AI Smart Reply Generator</h1>
                 <p className={styles.subtitle}>Analyzing audience sentiments for {videoTitle}</p>
+
+                {/* Post-OAuth banner */}
+                {directPostStatus !== 'idle' && (
+                    <div style={{
+                        padding: '16px 24px',
+                        borderRadius: '12px',
+                        marginBottom: '20px',
+                        textAlign: 'center',
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        ...(directPostStatus === 'posting' ? {
+                            background: 'rgba(59, 130, 246, 0.15)',
+                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            color: '#60a5fa',
+                        } : directPostStatus === 'success' ? {
+                            background: 'rgba(34, 197, 94, 0.15)',
+                            border: '1px solid rgba(34, 197, 94, 0.3)',
+                            color: '#4ade80',
+                        } : {
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            color: '#f87171',
+                        })
+                    }}>
+                        {directPostStatus === 'posting' && '✨ YouTube connected! Posting your reply...'}
+                        {directPostStatus === 'success' && '✅ Reply posted to YouTube successfully!'}
+                        {directPostStatus === 'error' && '❌ Failed to post reply. Please try again manually.'}
+                    </div>
+                )}
 
                 {/* Primary Left Sidebar for Filters */}
                 <aside className={styles.filterSidebar}>
