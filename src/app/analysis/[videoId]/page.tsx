@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { createClient } from '@/utils/supabase/client';
 import styles from '../analysis.module.css';
 import Sidebar from '@/app/components/Sidebar';
 
@@ -19,13 +20,24 @@ export default function AnalysisPage() {
     // Sentiment values parsed from plain text
     const [sentiment, setSentiment] = useState({ pos: '0', neg: '0', neu: '0' });
 
+    // User auth
+    const [userId, setUserId] = useState<string | null>(null);
+
     // AbortController ref to cancel duplicate streams (React StrictMode fires useEffect twice)
     const abortRef = useRef<AbortController | null>(null);
 
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
+    // Get user ID on mount
     useEffect(() => {
-        if (videoId) {
+        const supabase = createClient();
+        supabase.auth.getUser().then(({ data }) => {
+            if (data.user) setUserId(data.user.id);
+        });
+    }, []);
+
+    useEffect(() => {
+        if (videoId && userId) {
             // Cancel any in-progress analysis (prevents StrictMode double-stream)
             if (abortRef.current) {
                 abortRef.current.abort();
@@ -39,7 +51,7 @@ export default function AnalysisPage() {
                 controller.abort();
             };
         }
-    }, [videoId]);
+    }, [videoId, userId]);
 
     // Parse sentiment percentages from plain text
     useEffect(() => {
@@ -131,9 +143,17 @@ export default function AnalysisPage() {
             const analyzeResponse = await fetch(`${backendUrl}/analyze`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ comments: videoComments }),
+                body: JSON.stringify({ comments: videoComments, userId }),
                 signal,
             });
+
+            // Handle quota limit
+            if (analyzeResponse.status === 429) {
+                const limitData = await analyzeResponse.json();
+                setAnalysisText(`⚡ Daily limit reached — You've used all ${limitData.limit} analyses for today. Upgrade to Pro for more, or try again tomorrow!`);
+                setLoading(false);
+                return;
+            }
 
             const reader = analyzeResponse.body?.getReader();
             const decoder = new TextDecoder();
@@ -185,12 +205,15 @@ export default function AnalysisPage() {
             const questionsResponse = await fetch(`${backendUrl}/followup-questions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ comments: videoComments }),
+                body: JSON.stringify({ comments: videoComments, userId }),
                 signal,
             });
 
-            const qResult = await questionsResponse.json();
-            setQuestions(qResult.questions || []);
+            if (questionsResponse.ok) {
+                const qResult = await questionsResponse.json();
+                setQuestions(qResult.questions || []);
+            }
+            // Silently skip if follow-up questions quota is reached
 
         } catch (error: unknown) {
             // Don't show error if we intentionally aborted
@@ -216,8 +239,14 @@ export default function AnalysisPage() {
             const response = await fetch(`${backendUrl}/followup-answer`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ comments, question }),
+                body: JSON.stringify({ comments, question, userId }),
             });
+
+            // Handle quota limit
+            if (response.status === 429) {
+                setAnswer('⚡ Daily limit reached for follow-up answers. Try again tomorrow or upgrade to Pro!');
+                return;
+            }
 
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();

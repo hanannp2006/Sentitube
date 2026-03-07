@@ -159,8 +159,16 @@ export default function SmartRepliesPage() {
                     const categorizeRes = await fetch(`${backendUrl}/categorize-comments`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ comments: chunk.map(c => c.text) }),
+                        body: JSON.stringify({ comments: chunk.map(c => c.text), userId: currentUserId || userId }),
                     });
+
+                    // Handle quota limit
+                    if (categorizeRes.status === 429) {
+                        const limitData = await categorizeRes.json();
+                        setError(`⚡ Daily limit reached — You've used all ${limitData.limit} sentiment classifications today. Upgrade to Pro for more!`);
+                        setLoading(false);
+                        return;
+                    }
                     const { categorized } = await categorizeRes.json();
                     // Merge Metadata back into categorized results
                     const withMetadata = (categorized || []).map((cat: { text: string; sentiment: string }, i: number) => ({
@@ -221,8 +229,16 @@ export default function SmartRepliesPage() {
             const res = await fetch(`${backendUrl}/generate-smart-reply`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ videoTitle, commentText: text }),
+                body: JSON.stringify({ videoTitle, commentText: text, userId }),
             });
+
+            // Handle quota limit
+            if (res.status === 429) {
+                const limitData = await res.json();
+                setSuggestions(prev => ({ ...prev, [index]: `⚡ Daily limit reached — You've used all ${limitData.limit} AI replies today. Upgrade to Pro for more!` }));
+                return;
+            }
+
             const data = await res.json();
             setSuggestions(prev => ({ ...prev, [index]: data.reply }));
         } catch (err) {

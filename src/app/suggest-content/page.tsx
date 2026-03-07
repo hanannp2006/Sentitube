@@ -63,9 +63,16 @@ export default function SuggestContentPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     channelHandle: channelEntry.channel_input,
-                    excludeTitles: excludeTitles
+                    excludeTitles: excludeTitles,
+                    userId: user.id
                 }),
             });
+
+            // Handle quota limit
+            if (res.status === 429) {
+                const limitData = await res.json();
+                throw new Error(`\u26a1 Daily limit reached \u2014 You've used all ${limitData.limit} content idea generations today. Upgrade to Pro for more!`);
+            }
 
             if (!res.ok) {
                 const data = await res.json();

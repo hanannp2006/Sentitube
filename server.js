@@ -52,6 +52,176 @@ const supabase = createClient(
 );
 
 /* -------------------------------------------------- */
+/* AI USAGE LIMITS (per-user daily quotas)            */
+/* -------------------------------------------------- */
+const USAGE_LIMITS = {
+    free: {
+        analysis: 2,
+        categorize: 2,
+        smart_reply: 5,
+        content_ideas: 2,
+        script: 1,
+        followup_q: 2,
+        followup_a: 2,
+    },
+    pro: {
+        analysis: 50,
+        categorize: 50,
+        smart_reply: 200,
+        content_ideas: 20,
+        script: 20,
+        followup_q: 50,
+        followup_a: 100,
+    }
+};
+
+function checkQuota(featureKey) {
+    return async (req, res, next) => {
+        const userId = req.body?.userId;
+        if (!userId) {
+            return res.status(401).json({ error: "Authentication required for this feature" });
+        }
+
+        try {
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+            // Get user's plan (default to 'free')
+            const { data: planData } = await supabase
+                .from('user_plans')
+                .select('plan')
+                .eq('user_id', userId)
+                .single();
+
+            const plan = planData?.plan || 'free';
+            const limit = USAGE_LIMITS[plan]?.[featureKey];
+
+            if (limit === undefined) {
+                return next(); // No limit configured, allow
+            }
+
+            // Get today's usage count
+            const { data: usageData } = await supabase
+                .from('user_daily_usage')
+                .select('usage_count')
+                .eq('user_id', userId)
+                .eq('feature', featureKey)
+                .eq('usage_date', today)
+                .single();
+
+            const currentCount = usageData?.usage_count || 0;
+
+            if (currentCount >= limit) {
+                const tomorrow = new Date();
+                tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+                tomorrow.setUTCHours(0, 0, 0, 0);
+
+                return res.status(429).json({
+                    error: "Daily limit reached",
+                    feature: featureKey,
+                    used: currentCount,
+                    limit: limit,
+                    plan: plan,
+                    resetsAt: tomorrow.toISOString(),
+                });
+            }
+
+            // Increment usage (upsert: insert if no row, update if exists)
+            const { error: upsertError } = await supabase
+                .from('user_daily_usage')
+                .upsert({
+                    user_id: userId,
+                    feature: featureKey,
+                    usage_date: today,
+                    usage_count: currentCount + 1,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id,feature,usage_date' });
+
+            if (upsertError) {
+                console.error('Quota tracking error:', upsertError);
+                // Don't block the request if tracking fails
+            }
+
+            // Attach rollback in case AI call fails
+            req.rollbackQuota = async () => {
+                try {
+                    await supabase
+                        .from('user_daily_usage')
+                        .update({
+                            usage_count: currentCount,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('user_id', userId)
+                        .eq('feature', featureKey)
+                        .eq('usage_date', today);
+                } catch (rbErr) {
+                    console.error('Quota rollback error:', rbErr);
+                }
+            };
+
+            next();
+        } catch (err) {
+            console.error('Quota check error:', err);
+            // Don't block user if quota check itself fails
+            next();
+        }
+    };
+}
+
+/* -------------------------------------------------- */
+/* USAGE ENDPOINT (frontend can query remaining quota)*/
+/* -------------------------------------------------- */
+app.post("/usage", async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) {
+            return res.status(401).json({ error: "Authentication required" });
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+
+        // Get user's plan
+        const { data: planData } = await supabase
+            .from('user_plans')
+            .select('plan')
+            .eq('user_id', userId)
+            .single();
+
+        const plan = planData?.plan || 'free';
+        const limits = USAGE_LIMITS[plan];
+
+        // Get all of today's usage for this user
+        const { data: usageRows } = await supabase
+            .from('user_daily_usage')
+            .select('feature, usage_count')
+            .eq('user_id', userId)
+            .eq('usage_date', today);
+
+        const usageMap = {};
+        (usageRows || []).forEach(row => {
+            usageMap[row.feature] = row.usage_count;
+        });
+
+        // Build response
+        const usage = {};
+        for (const [feature, limit] of Object.entries(limits)) {
+            usage[feature] = {
+                used: usageMap[feature] || 0,
+                limit: limit,
+            };
+        }
+
+        const tomorrow = new Date();
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+        tomorrow.setUTCHours(0, 0, 0, 0);
+
+        res.json({ plan, usage, resetsAt: tomorrow.toISOString() });
+    } catch (err) {
+        console.error("Usage endpoint error:", err);
+        res.status(500).json({ error: "Failed to fetch usage" });
+    }
+});
+
+/* -------------------------------------------------- */
 /* YOUTUBE OAUTH CONFIG & TOKEN STORE (SUPABASE)      */
 /* -------------------------------------------------- */
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -339,7 +509,7 @@ app.post("/post-reply", async (req, res) => {
 /* -------------------------------------------------- */
 /* 1. STREAM SUMMARY + PERCENTAGES                    */
 /* -------------------------------------------------- */
-app.post("/analyze", async (req, res) => {
+app.post("/analyze", checkQuota("analysis"), async (req, res) => {
     try {
         const { comments = [] } = req.body;
         const SAMPLE = comments.slice(0, 100);
@@ -409,6 +579,7 @@ ${SAMPLE.join("\n")}
         res.end();
     } catch (err) {
         console.error("Analyze error:", err);
+        if (req.rollbackQuota) await req.rollbackQuota();
         if (res.headersSent) {
             res.write(`data: ${JSON.stringify({ error: "Analysis failed" })}\n\n`);
             res.end();
@@ -421,7 +592,7 @@ ${SAMPLE.join("\n")}
 /* -------------------------------------------------- */
 /* 2. FOLLOW-UP QUESTIONS (STRICT JSON, NO STREAM)    */
 /* -------------------------------------------------- */
-app.post("/followup-questions", async (req, res) => {
+app.post("/followup-questions", checkQuota("followup_q"), async (req, res) => {
     try {
         const { comments = [] } = req.body;
         const SAMPLE = comments.slice(0, 100);
@@ -458,6 +629,7 @@ ${SAMPLE.join("\n")}
         res.json(json);
     } catch (err) {
         console.error("Follow-up JSON error:", err);
+        if (req.rollbackQuota) await req.rollbackQuota();
         res.status(500).json({ questions: [] });
     }
 });
@@ -465,7 +637,7 @@ ${SAMPLE.join("\n")}
 /* -------------------------------------------------- */
 /* 3. STREAM ANSWER FOR CLICKED QUESTION              */
 /* -------------------------------------------------- */
-app.post("/followup-answer", async (req, res) => {
+app.post("/followup-answer", checkQuota("followup_a"), async (req, res) => {
     try {
         const { comments = [], question } = req.body;
         const SAMPLE = comments.slice(0, 100);
@@ -505,6 +677,7 @@ ${SAMPLE.join("\n")}
         res.end();
     } catch (err) {
         console.error("Follow-up answer error:", err);
+        if (req.rollbackQuota) await req.rollbackQuota();
         res.end();
     }
 });
@@ -512,7 +685,7 @@ ${SAMPLE.join("\n")}
 /* -------------------------------------------------- */
 /* 4. CATEGORIZE COMMENTS (FOR REPLY GENERATOR)       */
 /* -------------------------------------------------- */
-app.post("/categorize-comments", async (req, res) => {
+app.post("/categorize-comments", checkQuota("categorize"), async (req, res) => {
     try {
         const { comments = [] } = req.body;
         const SAMPLE = comments.slice(0, 50); // Fetch 50 comments as requested
@@ -545,6 +718,7 @@ ${SAMPLE.join("\n---COMMENT_BREAK---\n")}
         res.json(json);
     } catch (err) {
         console.error("Categorize error:", err);
+        if (req.rollbackQuota) await req.rollbackQuota();
         res.status(500).json({ categorized: [] });
     }
 });
@@ -552,7 +726,7 @@ ${SAMPLE.join("\n---COMMENT_BREAK---\n")}
 /* -------------------------------------------------- */
 /* 5. GENERATE SMART REPLY (JSON RESPONSE)            */
 /* -------------------------------------------------- */
-app.post("/generate-smart-reply", async (req, res) => {
+app.post("/generate-smart-reply", checkQuota("smart_reply"), async (req, res) => {
     try {
         const { videoTitle, commentText } = req.body;
 
@@ -588,6 +762,7 @@ COMMENT:
         res.json({ reply: result.choices[0].message.content });
     } catch (err) {
         console.error("Reply generation error:", err);
+        if (req.rollbackQuota) await req.rollbackQuota();
         res.status(500).json({ reply: "Sorry, I couldn't generate a reply at this time." });
     }
 });
@@ -595,7 +770,7 @@ COMMENT:
 /* -------------------------------------------------- */
 /* 6. SUGGEST CONTENT IDEAS                          */
 /* -------------------------------------------------- */
-app.post("/suggest-content-ideas", async (req, res) => {
+app.post("/suggest-content-ideas", checkQuota("content_ideas"), async (req, res) => {
     try {
         const { channelHandle, excludeTitles = [] } = req.body;
         if (!channelHandle) {
@@ -675,6 +850,7 @@ app.post("/suggest-content-ideas", async (req, res) => {
         res.json(json);
     } catch (err) {
         console.error("Suggest ideas error:", err);
+        if (req.rollbackQuota) await req.rollbackQuota();
         res.status(500).json({ error: "Failed to generate ideas" });
     }
 });
@@ -682,7 +858,7 @@ app.post("/suggest-content-ideas", async (req, res) => {
 /* -------------------------------------------------- */
 /* 7. SCRIPT GENERATOR (STREAMING)                    */
 /* -------------------------------------------------- */
-app.post("/generate-script", async (req, res) => {
+app.post("/generate-script", checkQuota("script"), async (req, res) => {
     try {
         const { prompt, videoType, duration, tone } = req.body;
 
@@ -746,6 +922,7 @@ Write the complete script now:`;
 
     } catch (err) {
         console.error("Script generation error:", err);
+        if (req.rollbackQuota) await req.rollbackQuota();
         // If headers already sent, just end
         if (res.headersSent) {
             res.write(`data: ${JSON.stringify({ error: "Generation failed" })}\n\n`);

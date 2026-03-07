@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 import Sidebar from '@/app/components/Sidebar';
 import styles from './script-generator.module.css';
 
@@ -91,11 +92,20 @@ function ScriptGeneratorContent() {
     const [script, setScript] = useState('');
     const [generating, setGenerating] = useState(false);
     const [error, setError] = useState('');
+    const [userId, setUserId] = useState<string | null>(null);
     const scriptRef = useRef<HTMLDivElement>(null);
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
     const searchParams = useSearchParams();
     const ideaParam = searchParams.get('idea');
+
+    // Get user ID on mount
+    useEffect(() => {
+        const supabase = createClient();
+        supabase.auth.getUser().then(({ data }) => {
+            if (data.user) setUserId(data.user.id);
+        });
+    }, []);
 
     // Auto-generate if idea is passed in URL
     useEffect(() => {
@@ -149,8 +159,15 @@ function ScriptGeneratorContent() {
             const res = await fetch(`${backendUrl}/generate-script`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: currentPrompt, videoType, duration, tone }),
+                body: JSON.stringify({ prompt: currentPrompt, videoType, duration, tone, userId }),
             });
+
+            if (res.status === 429) {
+                const limitData = await res.json();
+                setError(`⚡ Daily limit reached — You've used all ${limitData.limit} script generation(s) today. Upgrade to Pro for more!`);
+                setGenerating(false);
+                return;
+            }
 
             if (!res.ok) {
                 const data = await res.json();
