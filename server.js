@@ -79,24 +79,18 @@ function checkQuota(featureKey) {
     return async (req, res, next) => {
         const userId = req.body?.userId;
         if (!userId) {
-            console.log(`[QUOTA] No userId for ${featureKey} — rejecting`);
             return res.status(401).json({ error: "Authentication required for this feature" });
         }
 
         try {
             const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-            console.log(`[QUOTA] Checking ${featureKey} for user ${userId.slice(0, 8)}... (date: ${today})`);
 
             // Get user's plan (default to 'free')
-            const { data: planData, error: planError } = await supabase
+            const { data: planData } = await supabase
                 .from('user_plans')
                 .select('plan')
                 .eq('user_id', userId)
                 .single();
-
-            if (planError) {
-                console.log(`[QUOTA] user_plans lookup: ${planError.message} (code: ${planError.code})`);
-            }
 
             const plan = planData?.plan || 'free';
             const limit = USAGE_LIMITS[plan]?.[featureKey];
@@ -115,19 +109,16 @@ function checkQuota(featureKey) {
                 .single();
 
             if (usageError && usageError.code !== 'PGRST116') {
-                // PGRST116 = "no rows found" which is normal for first use
-                console.error(`[QUOTA] user_daily_usage SELECT error:`, usageError);
+                console.error(`[QUOTA] SELECT error for ${featureKey}:`, usageError.message);
             }
 
             const currentCount = usageData?.usage_count || 0;
-            console.log(`[QUOTA] ${featureKey}: ${currentCount}/${limit} (plan: ${plan})`);
 
             if (currentCount >= limit) {
                 const tomorrow = new Date();
                 tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
                 tomorrow.setUTCHours(0, 0, 0, 0);
 
-                console.log(`[QUOTA] BLOCKED ${featureKey} for user ${userId.slice(0, 8)} — limit reached`);
                 return res.status(429).json({
                     error: "Daily limit reached",
                     feature: featureKey,
@@ -151,8 +142,6 @@ function checkQuota(featureKey) {
 
             if (upsertError) {
                 console.error('[QUOTA] UPSERT FAILED:', upsertError);
-            } else {
-                console.log(`[QUOTA] ✅ ${featureKey} count updated to ${currentCount + 1}/${limit}`);
             }
 
             // Attach rollback in case AI call fails
