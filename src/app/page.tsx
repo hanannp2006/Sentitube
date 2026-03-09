@@ -370,6 +370,96 @@ export default function Home() {
       {/* Visual Separator */}
       <div className={styles.sectionDivider} />
 
+      {/* Pricing Section */}
+      <section id="pricing" className={styles.pricingSection}>
+        <div className={styles.pricingHeadingWrapper}>
+          <h2 className={styles.pricingTitle}>Simple, Transparent Pricing</h2>
+          <p className={styles.pricingSub}>Start free. Upgrade when you&apos;re ready to grow.</p>
+        </div>
+
+        <div className={styles.pricingGrid}>
+          {/* Free Card */}
+          <div className={styles.pricingCard}>
+            <h3 className={styles.pricingCardTitle}>Free</h3>
+            <p className={styles.pricingCardSubtitle}>Explore Sentitube</p>
+
+            <div className={styles.pricingPrice}>
+              <span className={styles.pricingAmount}>$0</span>
+            </div>
+
+            <div className={styles.pricingFeatures}>
+              <div className={styles.pricingFeatureItem}>
+                <span className={styles.pricingCheckFree}>✔</span>
+                <span>2 Video Analyses</span>
+              </div>
+              <div className={styles.pricingFeatureItem}>
+                <span className={styles.pricingCheckFree}>✔</span>
+                <span>5 AI Replies</span>
+              </div>
+              <div className={styles.pricingFeatureItem}>
+                <span className={styles.pricingCheckFree}>✔</span>
+                <span>2 Content Ideas</span>
+              </div>
+              <div className={styles.pricingFeatureItem}>
+                <span className={styles.pricingCheckFree}>✔</span>
+                <span>1 Script Generation</span>
+              </div>
+            </div>
+
+            <a href="/connect-channel" className={`${styles.pricingCTA} ${styles.pricingCTAFree}`}>
+              Get Started Free
+            </a>
+          </div>
+
+          {/* Pro Card */}
+          <div className={`${styles.pricingCard} ${styles.pricingCardPro}`}>
+            <span className={styles.pricingBadge}>Most Popular</span>
+            <h3 className={styles.pricingCardTitle}>Sentitube Pro</h3>
+            <p className={styles.pricingCardSubtitle}>Built for Growth Creators</p>
+
+            <div className={styles.pricingPrice}>
+              <span className={styles.pricingAmount}>$19</span>
+              <span className={styles.pricingPeriod}>/ month</span>
+            </div>
+
+            <div className={styles.pricingFeatures}>
+              <div className={styles.pricingFeatureItem}>
+                <span className={styles.pricingCheck}>✔</span>
+                <span>Unlimited Video Analysis per month</span>
+              </div>
+              <div className={styles.pricingFeatureItem}>
+                <span className={styles.pricingCheck}>✔</span>
+                <span>200 AI Reply Generations per day</span>
+              </div>
+              <div className={styles.pricingFeatureItem}>
+                <span className={styles.pricingCheck}>✔</span>
+                <span>20 Content Ideas per day</span>
+              </div>
+              <div className={styles.pricingFeatureItem}>
+                <span className={styles.pricingCheck}>✔</span>
+                <span>20 Script Generations per day</span>
+              </div>
+              <div className={styles.pricingFeatureItem}>
+                <span className={styles.pricingCheck}>✔</span>
+                <span>Direct YouTube Reply Posting</span>
+              </div>
+              <div className={styles.pricingFeatureItem}>
+                <span className={styles.pricingCheck}>✔</span>
+                <span>Faster AI processing</span>
+              </div>
+            </div>
+
+            <a href="/connect-channel" className={`${styles.pricingCTA} ${styles.pricingCTAPro}`}>
+              Upgrade to Pro
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section */}
       <section id="faq" className={styles.faqSection}>
         <div className={styles.faqHeadingWrapper}>
@@ -418,6 +508,7 @@ export default function Home() {
               <nav className={styles.footerNav}>
                 <a href="#features">Features</a>
                 <a href="#how-it-works">How it Works</a>
+                <a href="#pricing">Pricing</a>
                 <a href="#faq">FAQ</a>
                 <a href="/connect-channel">Sign In</a>
               </nav>

@@ -165,7 +165,7 @@ export default function SmartRepliesPage() {
                     // Handle quota limit
                     if (categorizeRes.status === 429) {
                         const limitData = await categorizeRes.json();
-                        setError(`⚡ Daily limit reached — You've used all ${limitData.limit} sentiment classifications today. Upgrade to Pro for more!`);
+                        setError(`⚡ Daily limit reached. You've used all ${limitData.limit} sentiment analysis today. Upgrade to Pro for more!`);
                         setLoading(false);
                         return;
                     }
@@ -235,7 +235,7 @@ export default function SmartRepliesPage() {
             // Handle quota limit
             if (res.status === 429) {
                 const limitData = await res.json();
-                setSuggestions(prev => ({ ...prev, [index]: `⚡ Daily limit reached — You've used all ${limitData.limit} AI replies today. Upgrade to Pro for more!` }));
+                setSuggestions(prev => ({ ...prev, [index]: `⚡ Daily limit reached for smart replies. Upgrade for more!` }));
                 return;
             }
 

@@ -23,6 +23,9 @@ export default function AnalysisPage() {
     // User auth
     const [userId, setUserId] = useState<string | null>(null);
 
+    // Error state
+    const [errorMsg, setErrorMsg] = useState('');
+
     // AbortController ref to cancel duplicate streams (React StrictMode fires useEffect twice)
     const abortRef = useRef<AbortController | null>(null);
 
@@ -115,6 +118,7 @@ export default function AnalysisPage() {
             setLoading(true);
             setAnalysisText('');
             setQuestions([]);
+            setErrorMsg('');
 
             // STEP 1: Fetch Comments
             const fetchResponse = await fetch(`${backendUrl}/fetch-comments`, {
@@ -150,8 +154,9 @@ export default function AnalysisPage() {
             // Handle quota limit
             if (analyzeResponse.status === 429) {
                 const limitData = await analyzeResponse.json();
-                setAnalysisText(`⚡ Daily limit reached — You've used all ${limitData.limit} analyses for today. Upgrade to Pro for more, or try again tomorrow!`);
+                setAnalysisText(`⚡ Daily limit reached — You've used all ${limitData.limit} analysis today. Upgrade to Pro for more!`);
                 setLoading(false);
+                setStreaming(false);
                 return;
             }
 
@@ -235,6 +240,7 @@ export default function AnalysisPage() {
 
         setActiveQuestion(question);
         setAnswer('');
+        setErrorMsg('');
         try {
             const response = await fetch(`${backendUrl}/followup-answer`, {
                 method: 'POST',
@@ -244,7 +250,8 @@ export default function AnalysisPage() {
 
             // Handle quota limit
             if (response.status === 429) {
-                setAnswer('⚡ Daily limit reached for follow-up answers. Try again tomorrow or upgrade to Pro!');
+                const limitData = await response.json();
+                setAnswer(`⚡ Daily limit reached for follow-up answers. Try again tomorrow or upgrade to Pro!`);
                 return;
             }
 
