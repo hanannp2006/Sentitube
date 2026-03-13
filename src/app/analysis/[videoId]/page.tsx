@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import styles from '../analysis.module.css';
 import Sidebar from '@/app/components/Sidebar';
+import UpgradeModal from '@/app/components/UpgradeModal';
 
 export default function AnalysisPage() {
     const { videoId } = useParams();
@@ -22,6 +23,10 @@ export default function AnalysisPage() {
 
     // User auth
     const [userId, setUserId] = useState<string | null>(null);
+
+    // Upgrade modal
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [limitedFeature, setLimitedFeature] = useState('');
 
     // AbortController ref to cancel duplicate streams (React StrictMode fires useEffect twice)
     const abortRef = useRef<AbortController | null>(null);
@@ -149,8 +154,9 @@ export default function AnalysisPage() {
 
             // Handle quota limit
             if (analyzeResponse.status === 429) {
-                const limitData = await analyzeResponse.json();
-                setAnalysisText(`⚡ Daily limit reached — You've used all ${limitData.limit} analyses for today. Upgrade to Pro for more, or try again tomorrow!`);
+                setStreaming(false);
+                setLimitedFeature('video analyses');
+                setShowUpgradeModal(true);
                 setLoading(false);
                 return;
             }
@@ -244,7 +250,8 @@ export default function AnalysisPage() {
 
             // Handle quota limit
             if (response.status === 429) {
-                setAnswer('⚡ Daily limit reached for follow-up answers. Try again tomorrow or upgrade to Pro!');
+                setLimitedFeature('follow-up answers');
+                setShowUpgradeModal(true);
                 return;
             }
 
@@ -283,6 +290,13 @@ export default function AnalysisPage() {
     return (
         <div className={styles.pageWrapper}>
             <Sidebar activeItem="Analyze Channel" />
+
+            {showUpgradeModal && (
+                <UpgradeModal
+                    feature={limitedFeature}
+                    onClose={() => setShowUpgradeModal(false)}
+                />
+            )}
 
             <main className={styles.mainContent}>
                 <div className={styles.maxContainer}>

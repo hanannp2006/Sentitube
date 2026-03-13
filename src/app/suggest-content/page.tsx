@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Sidebar from '@/app/components/Sidebar';
+import UpgradeModal from '@/app/components/UpgradeModal';
 import { createClient } from '@/utils/supabase/client';
 import styles from './suggest-content.module.css';
 
@@ -17,6 +18,9 @@ export default function SuggestContentPage() {
     const [fetchingMore, setFetchingMore] = useState(false);
     const [error, setError] = useState('');
     const supabase = createClient();
+
+    // Upgrade modal
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
     useEffect(() => {
         fetchIdeas();
@@ -70,8 +74,10 @@ export default function SuggestContentPage() {
 
             // Handle quota limit
             if (res.status === 429) {
-                const limitData = await res.json();
-                throw new Error(`\u26a1 Daily limit reached \u2014 You've used all ${limitData.limit} content idea generations today. Upgrade to Pro for more!`);
+                setShowUpgradeModal(true);
+                if (isMore) setFetchingMore(false);
+                else setLoading(false);
+                return;
             }
 
             if (!res.ok) {
@@ -106,6 +112,13 @@ export default function SuggestContentPage() {
     return (
         <div className={styles.pageWrapper}>
             <Sidebar activeItem="Suggest Content Ideas" />
+
+            {showUpgradeModal && (
+                <UpgradeModal
+                    feature="content ideas"
+                    onClose={() => setShowUpgradeModal(false)}
+                />
+            )}
 
             <div className={styles.bgDecor}>
                 <div className={styles.bgOrb1}></div>

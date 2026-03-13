@@ -1,0 +1,247 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(40px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal {
+    background: linear-gradient(165deg, rgba(17, 24, 48, 0.98), rgba(8, 12, 28, 0.99));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 28px;
+    padding: 2.5rem 2.25rem;
+    max-width: 440px;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 
+        0 0 80px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(59, 130, 246, 0.05);
+}
+
+.modal::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #3b82f6, #ef4444, transparent);
+}
+
+.closeBtn {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.closeBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.limitIcon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.title {
+    font-size: 1.75rem;
+    font-weight: 850;
+    color: white;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.03em;
+}
+
+.description {
+    font-size: 1rem;
+    color: #94a3b8;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.featureName {
+    color: #f87171;
+    font-weight: 700;
+}
+
+.proCard {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    padding: 1.75rem;
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.proHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.proTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: white;
+}
+
+.proBadge {
+    padding: 0.35rem 0.75rem;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border-radius: 999px;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.proFeatures {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.proFeatureItem {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.92rem;
+    color: #cbd5e1;
+}
+
+.proCheck {
+    color: #3b82f6;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.proPriceRow {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.proPriceAmount {
+    font-size: 2.25rem;
+    font-weight: 900;
+    color: white;
+    letter-spacing: -0.04em;
+    line-height: 1;
+}
+
+.proPricePeriod {
+    font-size: 1rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.ctaButton {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 12px 24px -6px rgba(59, 130, 246, 0.4);
+    text-decoration: none;
+}
+
+.ctaButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px -6px rgba(59, 130, 246, 0.5);
+    filter: brightness(1.1);
+}
+
+.dismissLink {
+    display: block;
+    text-align: center;
+    margin-top: 1.25rem;
+    font-size: 0.85rem;
+    color: #64748b;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    background: none;
+    border: none;
+    width: 100%;
+}
+
+.dismissLink:hover {
+    color: #94a3b8;
+}
+
+/* ─── Mobile Adjustments ─── */
+@media (max-width: 480px) {
+    .overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .modal {
+        border-radius: 32px 32px 0 0;
+        padding: 2.5rem 1.75rem;
+        max-width: 100%;
+        animation: slideUpMobile 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUpMobile {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .proCard {
+        padding: 1.25rem;
+    }
+
+    .proPriceAmount {
+        font-size: 2rem;
+    }
+}

@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import styles from '../replies.module.css';
+import UpgradeModal from '@/app/components/UpgradeModal';
 
 interface CategorizedComment {
     id: string;
@@ -39,6 +40,10 @@ export default function SmartRepliesPage() {
 
     const [userId, setUserId] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState('ALL');
+
+    // Upgrade modal
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [limitedFeature, setLimitedFeature] = useState('');
 
     // Direct post state (for post-OAuth immediate posting)
     const [directPostStatus, setDirectPostStatus] = useState<'idle' | 'posting' | 'success' | 'error'>('idle');
@@ -164,8 +169,8 @@ export default function SmartRepliesPage() {
 
                     // Handle quota limit
                     if (categorizeRes.status === 429) {
-                        const limitData = await categorizeRes.json();
-                        setError(`⚡ Daily limit reached — You've used all ${limitData.limit} sentiment classifications today. Upgrade to Pro for more!`);
+                        setLimitedFeature('sentiment classifications');
+                        setShowUpgradeModal(true);
                         setLoading(false);
                         return;
                     }
@@ -234,8 +239,8 @@ export default function SmartRepliesPage() {
 
             // Handle quota limit
             if (res.status === 429) {
-                const limitData = await res.json();
-                setSuggestions(prev => ({ ...prev, [index]: `⚡ Daily limit reached — You've used all ${limitData.limit} AI replies today. Upgrade to Pro for more!` }));
+                setLimitedFeature('AI replies');
+                setShowUpgradeModal(true);
                 return;
             }
 
@@ -370,6 +375,13 @@ export default function SmartRepliesPage() {
 
     return (
         <div className={styles.container}>
+            {showUpgradeModal && (
+                <UpgradeModal
+                    feature={limitedFeature}
+                    onClose={() => setShowUpgradeModal(false)}
+                />
+            )}
+
             <main className={styles.maxContainer}>
                 <Link href="/dashboard" className={styles.backBtn}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import Sidebar from '@/app/components/Sidebar';
+import UpgradeModal from '@/app/components/UpgradeModal';
 import styles from './script-generator.module.css';
 
 interface DropdownOption {
@@ -93,6 +94,9 @@ function ScriptGeneratorContent() {
     const [generating, setGenerating] = useState(false);
     const [error, setError] = useState('');
     const [userId, setUserId] = useState<string | null>(null);
+
+    // Upgrade modal
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const scriptRef = useRef<HTMLDivElement>(null);
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
@@ -163,8 +167,7 @@ function ScriptGeneratorContent() {
             });
 
             if (res.status === 429) {
-                const limitData = await res.json();
-                setError(`⚡ Daily limit reached — You've used all ${limitData.limit} script generation(s) today. Upgrade to Pro for more!`);
+                setShowUpgradeModal(true);
                 setGenerating(false);
                 return;
             }
@@ -262,6 +265,13 @@ function ScriptGeneratorContent() {
     return (
         <div className={styles.container}>
             <Sidebar activeItem="Script Generator" />
+
+            {showUpgradeModal && (
+                <UpgradeModal
+                    feature="script generations"
+                    onClose={() => setShowUpgradeModal(false)}
+                />
+            )}
 
             <main className={styles.main}>
                 {/* Show hero when no script, show script output when generating/generated */}
