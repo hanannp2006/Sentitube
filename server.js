@@ -43,13 +43,19 @@ app.get("/", (req, res) => {
 
 // Debug endpoint to list routes (helpful for troubleshooting 404s)
 app.get("/debug-routes", (req, res) => {
-    const routes = [];
-    app._router.stack.forEach((middleware) => {
-        if (middleware.route) {
-            routes.push(`${Object.keys(middleware.route.methods).join(',').toUpperCase()} ${middleware.route.path}`);
-        }
-    });
-    res.json({ routes });
+    try {
+        const routes = [];
+        const stack = app._router?.stack || [];
+        stack.forEach((middleware) => {
+            if (middleware.route) {
+                const methods = Object.keys(middleware.route.methods).join(',').toUpperCase();
+                routes.push(`${methods} ${middleware.route.path}`);
+            }
+        });
+        res.json({ routes, dodo_key_set: !!process.env.DODO_API_KEY, product_id_set: !!process.env.DODO_PRODUCT_ID });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 const openai = new OpenAI({
@@ -515,8 +521,12 @@ app.post("/create-checkout", async (req, res) => {
         res.json({ checkout_url: session.paymentLink });
 
     } catch (err) {
-        console.error("Failed to create checkout session:", err);
-        res.status(500).json({ error: "Failed to initialize payment gateway" });
+        console.error("DODO CHECKOUT ERROR:", err);
+        res.status(500).json({ 
+            error: "Failed to initialize payment gateway", 
+            details: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
     }
 });
 
