@@ -12,16 +12,33 @@ interface SidebarProps {
 export default function Sidebar({ activeItem = 'Analyze Channel' }: SidebarProps) {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [userEmail, setUserEmail] = useState<string | null>(null);
+    const [userPlan, setUserPlan] = useState<string>('free');
     const supabase = createClient();
 
     useEffect(() => {
-        const getUser = async () => {
+        const getUserAndPlan = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 setUserEmail(user.email ?? null);
+                
+                // Fetch their plan status
+                try {
+                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+                    const res = await fetch(`${backendUrl}/subscription-status`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ userId: user.id })
+                    });
+                    if (res.ok) {
+                        const result = await res.json();
+                        setUserPlan(result.plan);
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch plan status", err);
+                }
             }
         };
-        getUser();
+        getUserAndPlan();
     }, []);
 
     const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
@@ -116,6 +133,23 @@ export default function Sidebar({ activeItem = 'Analyze Channel' }: SidebarProps
                 </nav>
 
                 <div className={styles.sidebarBottom}>
+                    <div className={styles.planContainer}>
+                        {userPlan === 'pro' ? (
+                            <div className={styles.proBadge}>⭐ Pro Member</div>
+                        ) : (
+                            <button 
+                                className={styles.upgradeBtnSidebar}
+                                onClick={() => {
+                                    // Normally you would open the modal here or redirect to a generalized checkout trigger.
+                                    // For simplicity, we just redirect to the connection page where the modal can trigger, or directly throw an alert.
+                                    // In a full implementation, you'd centralize the checkout function.
+                                    alert("Oops! To upgrade, please click the 'Upgrade to Pro' button inside any of the Pro-locked feature modals (e.g. Script Generator or AI Replies).");
+                                }}
+                            >
+                                💎 Upgrade to Pro
+                            </button>
+                        )}
+                    </div>
                     {userEmail && <div className={styles.userEmail}>{userEmail}</div>}
                     <form action="/auth/signout" method="post">
                         <button className={styles.logoutBtn} type="submit">

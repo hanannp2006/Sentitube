@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { createClient } from '@/utils/supabase/client';
 import styles from './UpgradeModal.module.css';
 
 interface UpgradeModalProps {
@@ -10,6 +11,22 @@ interface UpgradeModalProps {
 }
 
 export default function UpgradeModal({ feature, onClose }: UpgradeModalProps) {
+    const [isLoading, setIsLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
+    const [userData, setUserData] = useState<{ id: string, email: string } | null>(null);
+
+    // Fetch user info when modal opens
+    useEffect(() => {
+        const supabase = createClient();
+        supabase.auth.getUser().then(({ data, error }) => {
+            if (data?.user) {
+                setUserData({ id: data.user.id, email: data.user.email || "" });
+            } else if (error) {
+                console.error("Failed to get user details in modal:", error);
+            }
+        });
+    }, []);
+
     useEffect(() => {
         document.body.style.overflow = 'hidden';
         return () => {
@@ -19,11 +36,57 @@ export default function UpgradeModal({ feature, onClose }: UpgradeModalProps) {
 
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape' && !isLoading) onClose();
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, [onClose]);
+    }, [onClose, isLoading]);
+
+    const handleUpgrade = async () => {
+        try {
+            setIsLoading(true);
+            setErrorMsg("");
+            
+            if (!userData?.id) {
+                setErrorMsg("Please ensure you are logged in first.");
+                setIsLoading(false);
+                return;
+            }
+
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+            const res = await fetch(`${backendUrl}/create-checkout`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: userData.id, email: userData.email })
+            });
+
+            if (!res.ok) {
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const data = await res.json();
+                    throw new Error(data.error || "Failed to initialize checkout");
+                } else {
+                    const text = await res.text();
+                    console.error("Non-JSON error from backend:", text);
+                    throw new Error(`Server Error (${res.status}): Please check if your Render backend is running correctly.`);
+                }
+            }
+
+            const data = await res.json();
+            
+            if (data.checkout_url) {
+                // Redirect user to the DodoPayments checkout page
+                window.location.href = data.checkout_url;
+            } else {
+                throw new Error("No checkout URL returned");
+            }
+
+        } catch (err: any) {
+            console.error("Checkout error:", err);
+            setErrorMsg(err.message || "Failed to connect to payment gateway.");
+            setIsLoading(false);
+        }
+    };
 
     const modal = (
         <div className={styles.overlay} onClick={onClose}>
@@ -69,15 +132,24 @@ export default function UpgradeModal({ feature, onClose }: UpgradeModalProps) {
                     </div>
                 </div>
 
-                <a href="/connect-channel" className={styles.ctaButton}>
-                    Upgrade to Pro
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                        <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
-                </a>
+                {errorMsg && <p style={{ color: '#ff4d4f', fontSize: '14px', marginTop: '10px', textAlign: 'center' }}>{errorMsg}</p>}
 
-                <button className={styles.dismissLink} onClick={onClose}>
+                <button 
+                    className={styles.ctaButton} 
+                    onClick={handleUpgrade}
+                    disabled={isLoading}
+                    style={{ opacity: isLoading ? 0.7 : 1, cursor: isLoading ? 'not-allowed' : 'pointer', border: 'none', width: '100%' }}
+                >
+                    {isLoading ? "Redirecting..." : "Upgrade to Pro"}
+                    {!isLoading && (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    )}
+                </button>
+
+                <button className={styles.dismissLink} onClick={onClose} disabled={isLoading}>
                     Maybe later
                 </button>
             </div>

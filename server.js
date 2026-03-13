@@ -4,6 +4,8 @@ import OpenAI from "openai";
 import { google } from "googleapis";
 import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
+import DodoPayments from "dodopayments";
+import { Webhook } from "standardwebhooks";
 
 // Only load .env.local in local development (Railway injects env vars directly)
 if (fs.existsSync(".env.local")) {
@@ -36,11 +38,27 @@ app.use(express.json({ limit: "10mb" }));
 
 // Health check endpoint (required by hosting platforms)
 app.get("/", (req, res) => {
-    res.json({ status: "ok", service: "Sentitube Backend" });
+    res.json({ status: "ok", service: "Sentitube Backend", timestamp: new Date().toISOString() });
+});
+
+// Debug endpoint to list routes (helpful for troubleshooting 404s)
+app.get("/debug-routes", (req, res) => {
+    const routes = [];
+    app._router.stack.forEach((middleware) => {
+        if (middleware.route) {
+            routes.push(`${Object.keys(middleware.route.methods).join(',').toUpperCase()} ${middleware.route.path}`);
+        }
+    });
+    res.json({ routes });
 });
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
+});
+
+// Initialize DodoPayments Client
+const dodoClient = new DodoPayments({
+    bearerToken: process.env.DODO_API_KEY
 });
 
 /* -------------------------------------------------- */
@@ -451,6 +469,170 @@ app.post("/youtube/check-auth", async (req, res) => {
         res.json({ connected: !!token });
     } catch (err) {
         res.json({ connected: false });
+    }
+});
+
+/* -------------------------------------------------- */
+/* DODO PAYMENTS: CREATE CHECKOUT SESSION             */
+/* -------------------------------------------------- */
+app.post("/create-checkout", async (req, res) => {
+    try {
+        const { userId, email } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({ error: "Authentication required" });
+        }
+
+        const PRODUCT_ID = process.env.DODO_PRODUCT_ID;
+        const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+
+        if (!PRODUCT_ID) {
+             return res.status(500).json({ error: "Missing DODO_PRODUCT_ID in environment variables" });
+        }
+
+        const session = await dodoClient.payments.create({
+            billing: {
+                city: "",
+                country: "US", // DodoPayments requires a country. You can adjust this or collect it from the user if needed.
+                state: "",
+                street: "",
+                zipcode: ""
+            },
+            customer: {
+                email: email || "user@example.com", 
+                name: "Sentitube User" 
+            },
+            productCart: [
+                {
+                    productId: PRODUCT_ID,
+                    quantity: 1
+                }
+            ],
+            returnUrl: `${FRONTEND_URL}/payment-success`,
+            paymentLink: true // Critical for redirecting the user to the hosted checkout page
+        });
+
+        res.json({ checkout_url: session.paymentLink });
+
+    } catch (err) {
+        console.error("Failed to create checkout session:", err);
+        res.status(500).json({ error: "Failed to initialize payment gateway" });
+    }
+});
+
+/* -------------------------------------------------- */
+/* DODO PAYMENTS: WEBHOOK LISTENER                    */
+/* -------------------------------------------------- */
+// Important: Webhooks need the RAW body to verify the signature. 
+// Express json middleware (used above) parses it, so we need a specific parser for this route or handle it before the global json middleware.
+// Because the global express.json() is applied at the top, we have to bypass it for this specific route.
+app.post("/webhooks/dodo", express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+        const webhookSecret = process.env.DODO_WEBHOOK_SECRET;
+        const payload = req.body; // This is now a raw Buffer thanks to express.raw()
+        const headers = req.headers;
+
+        // Note: standardwebhooks expects the headers to be a Record<string, string>
+        // Express headers are sometimes string[], so we ensure they are string
+        const formattedHeaders = {};
+        for (const key in headers) {
+           if (typeof headers[key] === 'string') {
+               formattedHeaders[key] = headers[key]
+           } else if (Array.isArray(headers[key])) {
+               formattedHeaders[key] = headers[key][0]
+           }
+        }
+
+        const wh = new Webhook(webhookSecret);
+        
+        let event;
+        try {
+            // Verify the payload signature
+            event = wh.verify(payload, formattedHeaders);
+        } catch (err) {
+            console.error("Webhook signature verification failed:", err.message);
+            return res.status(400).send(`Webhook Error: ${err.message}`);
+        }
+
+        console.log(`[Webhook Details] Event type: ${event.type}`);
+
+        const data = event.data;
+
+        // Handle subscription events (Note: The exact event names might differ based on DodoPayments API version, 
+        // usually they are structured like 'subscription.active', 'payment.succeeded' etc. Please verify with their docs.)
+        if (event.type === 'subscription.active' || event.type === 'payment.succeeded') {
+             // Assuming user ID was passed in metadata or you can look up by email/customer_id
+             // Since we didn't pass metadata in checkout (Dodo SDK might not support arbitrary metadata in the create call explicitly below), 
+             // you have to map the customer back to the user via their email or customer ID.
+             const customerId = data.customer_id;
+             const customerEmail = data.customer?.email || data.email; 
+             const subscriptionId = data.subscription_id || data.payment_id;
+
+             console.log(`[Subscription Active] Customer Email: ${customerEmail}`);
+             
+             // Look up user by email in your database (this requires users to have emails in user_plans or a users table)
+             // As a workaround since user_plans doesn't have an email column natively, you might have to look up via Auth or store email in user_plans.
+             // Let's assume you store auth emails. For now, we update based on customerId if it exists, or we log a warning.
+             // *Future improvement*: Save the userId securely during checkout creation (e.g. in DodoCustomer metadata if supported)
+             
+             // For simplicity, we just log it here. You must adapt this to your specific User ID resolution strategy.
+             console.log(`Webhook received for email ${customerEmail}. Please ensure userId mapping is correct.`);
+             
+             // Example Update (You'll need a way to link customerEmail -> userId in Supabase)
+             /* 
+             await supabase
+                .from('user_plans')
+                .update({ 
+                    plan: 'pro',
+                    subscription_id: subscriptionId,
+                    dodo_customer_id: customerId,
+                    subscription_status: 'active',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('email', customerEmail) // Need an email column!
+             */
+        } else if (event.type === 'subscription.cancelled' || event.type === 'subscription.failed') {
+             // Handle cancellations
+        }
+
+        res.status(200).json({ received: true });
+
+    } catch (err) {
+        console.error("Webhook processing error:", err);
+        res.status(500).send("Webhook handler failed.");
+    }
+});
+
+/* -------------------------------------------------- */
+/* DODO PAYMENTS: SUBSCRIPTION STATUS CHECK           */
+/* -------------------------------------------------- */
+app.post("/subscription-status", async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) {
+            return res.status(401).json({ error: "Authentication required" });
+        }
+
+        const { data: planData, error } = await supabase
+            .from('user_plans')
+            .select('plan, subscription_status, current_period_end')
+            .eq('user_id', userId)
+            .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "No rows found"
+            console.error("Error fetching subscription status:", error);
+            return res.status(500).json({ error: "Failed to fetch status" });
+        }
+
+        res.json({
+            plan: planData?.plan || 'free',
+            status: planData?.subscription_status || 'none',
+            current_period_end: planData?.current_period_end || null
+        });
+
+    } catch (err) {
+        console.error("Subscription status error:", err);
+        res.status(500).json({ error: "Internal server error" });
     }
 });
 
