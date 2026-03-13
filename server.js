@@ -42,22 +42,6 @@ app.get("/", (req, res) => {
 });
 
 // Debug endpoint to list routes (helpful for troubleshooting 404s)
-app.get("/debug-routes", (req, res) => {
-    try {
-        const routes = [];
-        const stack = app._router?.stack || [];
-        stack.forEach((middleware) => {
-            if (middleware.route) {
-                const methods = Object.keys(middleware.route.methods).join(',').toUpperCase();
-                routes.push(`${methods} ${middleware.route.path}`);
-            }
-        });
-        res.json({ routes, dodo_key_set: !!process.env.DODO_API_KEY, product_id_set: !!process.env.DODO_PRODUCT_ID });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
@@ -1125,6 +1109,23 @@ Write the complete script now:`;
         } else {
             res.status(500).json({ error: "Failed to generate script" });
         }
+    }
+});
+
+// Debug endpoint to list routes (helpful for troubleshooting 404s)
+app.get("/debug-routes", (req, res) => {
+    try {
+        const routes = [];
+        const stack = app._router?.stack || [];
+        stack.forEach((middleware) => {
+            if (middleware.route) {
+                const methods = Object.keys(middleware.route.methods).join(',').toUpperCase();
+                routes.push(`${methods} ${middleware.route.path}`);
+            }
+        });
+        res.json({ routes, dodo_key_set: !!process.env.DODO_API_KEY, product_id_set: !!process.env.DODO_PRODUCT_ID });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 

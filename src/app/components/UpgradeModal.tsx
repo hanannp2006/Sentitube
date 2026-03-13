@@ -64,7 +64,8 @@ export default function UpgradeModal({ feature, onClose }: UpgradeModalProps) {
                 const contentType = res.headers.get("content-type");
                 if (contentType && contentType.includes("application/json")) {
                     const data = await res.json();
-                    throw new Error(data.error || "Failed to initialize checkout");
+                    const fullError = data.details ? `${data.error}: ${data.details}` : (data.error || "Failed to initialize checkout");
+                    throw new Error(fullError);
                 } else {
                     const text = await res.text();
                     console.error("Non-JSON error from backend:", text);
