@@ -493,17 +493,17 @@ app.post("/create-checkout", async (req, res) => {
                 email: email || "user@example.com",
                 name: "Sentitube User"
             },
-            productCart: [
+            product_cart: [
                 {
-                    productId: PRODUCT_ID,
+                    product_id: PRODUCT_ID,
                     quantity: 1
                 }
             ],
-            returnUrl: `${FRONTEND_URL}/payment-success`,
-            paymentLink: true // Critical for redirecting the user to the hosted checkout page
+            return_url: `${FRONTEND_URL}/payment-success`,
+            payment_link: true // Critical for redirecting the user to the hosted checkout page
         });
 
-        res.json({ checkout_url: session.paymentLink });
+        res.json({ checkout_url: session.payment_link });
 
     } catch (err) {
         console.error("DODO CHECKOUT ERROR:", err);
