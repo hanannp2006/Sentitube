@@ -223,8 +223,10 @@
 
     .modal {
         border-radius: 32px 32px 0 0;
-        padding: 2.5rem 1.75rem;
+        padding: 2rem 1.5rem 1.5rem; /* Reduced padding */
         max-width: 100%;
+        max-height: 92vh; /* Ensure it doesn't hit the very top */
+        overflow-y: auto; /* Allow scrolling if price card is tall */
         animation: slideUpMobile 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -233,12 +235,24 @@
         to { transform: translateY(0); }
     }
 
+    .limitIcon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
     .title {
         font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .description {
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
     }
 
     .proCard {
         padding: 1.25rem;
+        margin-bottom: 1.5rem;
     }
 
     .proPriceAmount {
