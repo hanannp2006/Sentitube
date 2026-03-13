@@ -481,14 +481,7 @@ app.post("/create-checkout", async (req, res) => {
             return res.status(500).json({ error: "Missing DODO_PRODUCT_ID in environment variables" });
         }
 
-        const session = await dodoClient.payments.create({
-            billing: {
-                city: "",
-                country: "US", // DodoPayments requires a country. You can adjust this or collect it from the user if needed.
-                state: "",
-                street: "",
-                zipcode: ""
-            },
+        const session = await dodoClient.checkoutSessions.create({
             customer: {
                 email: email || "user@example.com",
                 name: "Sentitube User"
@@ -500,10 +493,9 @@ app.post("/create-checkout", async (req, res) => {
                 }
             ],
             return_url: `${FRONTEND_URL}/payment-success`,
-            payment_link: true // Critical for redirecting the user to the hosted checkout page
         });
 
-        res.json({ checkout_url: session.payment_link });
+        res.json({ checkout_url: session.checkout_url });
 
     } catch (err) {
         console.error("DODO CHECKOUT ERROR:", err);
