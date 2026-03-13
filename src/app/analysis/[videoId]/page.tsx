@@ -120,6 +120,7 @@ export default function AnalysisPage() {
             setLoading(true);
             setAnalysisText('');
             setQuestions([]);
+            setQuestions([]);
 
             // STEP 1: Fetch Comments
             const fetchResponse = await fetch(`${backendUrl}/fetch-comments`, {
@@ -241,6 +242,7 @@ export default function AnalysisPage() {
 
         setActiveQuestion(question);
         setAnswer('');
+        setErrorMsg('');
         try {
             const response = await fetch(`${backendUrl}/followup-answer`, {
                 method: 'POST',
