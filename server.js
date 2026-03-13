@@ -48,7 +48,8 @@ const openai = new OpenAI({
 
 // Initialize DodoPayments Client
 const dodoClient = new DodoPayments({
-    bearerToken: process.env.DODO_API_KEY
+    bearerToken: process.env.DODO_API_KEY,
+    environment: 'test_mode'
 });
 
 /* -------------------------------------------------- */
@@ -477,7 +478,7 @@ app.post("/create-checkout", async (req, res) => {
         const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
         if (!PRODUCT_ID) {
-             return res.status(500).json({ error: "Missing DODO_PRODUCT_ID in environment variables" });
+            return res.status(500).json({ error: "Missing DODO_PRODUCT_ID in environment variables" });
         }
 
         const session = await dodoClient.payments.create({
@@ -489,8 +490,8 @@ app.post("/create-checkout", async (req, res) => {
                 zipcode: ""
             },
             customer: {
-                email: email || "user@example.com", 
-                name: "Sentitube User" 
+                email: email || "user@example.com",
+                name: "Sentitube User"
             },
             productCart: [
                 {
@@ -506,8 +507,8 @@ app.post("/create-checkout", async (req, res) => {
 
     } catch (err) {
         console.error("DODO CHECKOUT ERROR:", err);
-        res.status(500).json({ 
-            error: "Failed to initialize payment gateway", 
+        res.status(500).json({
+            error: "Failed to initialize payment gateway",
             details: err.message,
             stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
         });
@@ -530,15 +531,15 @@ app.post("/webhooks/dodo", express.raw({ type: 'application/json' }), async (req
         // Express headers are sometimes string[], so we ensure they are string
         const formattedHeaders = {};
         for (const key in headers) {
-           if (typeof headers[key] === 'string') {
-               formattedHeaders[key] = headers[key]
-           } else if (Array.isArray(headers[key])) {
-               formattedHeaders[key] = headers[key][0]
-           }
+            if (typeof headers[key] === 'string') {
+                formattedHeaders[key] = headers[key]
+            } else if (Array.isArray(headers[key])) {
+                formattedHeaders[key] = headers[key][0]
+            }
         }
 
         const wh = new Webhook(webhookSecret);
-        
+
         let event;
         try {
             // Verify the payload signature
@@ -555,38 +556,38 @@ app.post("/webhooks/dodo", express.raw({ type: 'application/json' }), async (req
         // Handle subscription events (Note: The exact event names might differ based on DodoPayments API version, 
         // usually they are structured like 'subscription.active', 'payment.succeeded' etc. Please verify with their docs.)
         if (event.type === 'subscription.active' || event.type === 'payment.succeeded') {
-             // Assuming user ID was passed in metadata or you can look up by email/customer_id
-             // Since we didn't pass metadata in checkout (Dodo SDK might not support arbitrary metadata in the create call explicitly below), 
-             // you have to map the customer back to the user via their email or customer ID.
-             const customerId = data.customer_id;
-             const customerEmail = data.customer?.email || data.email; 
-             const subscriptionId = data.subscription_id || data.payment_id;
+            // Assuming user ID was passed in metadata or you can look up by email/customer_id
+            // Since we didn't pass metadata in checkout (Dodo SDK might not support arbitrary metadata in the create call explicitly below), 
+            // you have to map the customer back to the user via their email or customer ID.
+            const customerId = data.customer_id;
+            const customerEmail = data.customer?.email || data.email;
+            const subscriptionId = data.subscription_id || data.payment_id;
 
-             console.log(`[Subscription Active] Customer Email: ${customerEmail}`);
-             
-             // Look up user by email in your database (this requires users to have emails in user_plans or a users table)
-             // As a workaround since user_plans doesn't have an email column natively, you might have to look up via Auth or store email in user_plans.
-             // Let's assume you store auth emails. For now, we update based on customerId if it exists, or we log a warning.
-             // *Future improvement*: Save the userId securely during checkout creation (e.g. in DodoCustomer metadata if supported)
-             
-             // For simplicity, we just log it here. You must adapt this to your specific User ID resolution strategy.
-             console.log(`Webhook received for email ${customerEmail}. Please ensure userId mapping is correct.`);
-             
-             // Example Update (You'll need a way to link customerEmail -> userId in Supabase)
-             /* 
-             await supabase
-                .from('user_plans')
-                .update({ 
-                    plan: 'pro',
-                    subscription_id: subscriptionId,
-                    dodo_customer_id: customerId,
-                    subscription_status: 'active',
-                    updated_at: new Date().toISOString()
-                })
-                .eq('email', customerEmail) // Need an email column!
-             */
+            console.log(`[Subscription Active] Customer Email: ${customerEmail}`);
+
+            // Look up user by email in your database (this requires users to have emails in user_plans or a users table)
+            // As a workaround since user_plans doesn't have an email column natively, you might have to look up via Auth or store email in user_plans.
+            // Let's assume you store auth emails. For now, we update based on customerId if it exists, or we log a warning.
+            // *Future improvement*: Save the userId securely during checkout creation (e.g. in DodoCustomer metadata if supported)
+
+            // For simplicity, we just log it here. You must adapt this to your specific User ID resolution strategy.
+            console.log(`Webhook received for email ${customerEmail}. Please ensure userId mapping is correct.`);
+
+            // Example Update (You'll need a way to link customerEmail -> userId in Supabase)
+            /* 
+            await supabase
+               .from('user_plans')
+               .update({ 
+                   plan: 'pro',
+                   subscription_id: subscriptionId,
+                   dodo_customer_id: customerId,
+                   subscription_status: 'active',
+                   updated_at: new Date().toISOString()
+               })
+               .eq('email', customerEmail) // Need an email column!
+            */
         } else if (event.type === 'subscription.cancelled' || event.type === 'subscription.failed') {
-             // Handle cancellations
+            // Handle cancellations
         }
 
         res.status(200).json({ received: true });
