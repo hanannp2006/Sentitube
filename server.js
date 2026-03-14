@@ -492,6 +492,9 @@ app.post("/create-checkout", async (req, res) => {
                     quantity: 1
                 }
             ],
+            metadata: {
+                userId: userId
+            },
             return_url: `${FRONTEND_URL}/payment-success`,
         });
 
@@ -548,38 +551,41 @@ app.post("/webhooks/dodo", express.raw({ type: 'application/json' }), async (req
         // Handle subscription events (Note: The exact event names might differ based on DodoPayments API version, 
         // usually they are structured like 'subscription.active', 'payment.succeeded' etc. Please verify with their docs.)
         if (event.type === 'subscription.active' || event.type === 'payment.succeeded') {
-            // Assuming user ID was passed in metadata or you can look up by email/customer_id
-            // Since we didn't pass metadata in checkout (Dodo SDK might not support arbitrary metadata in the create call explicitly below), 
-            // you have to map the customer back to the user via their email or customer ID.
             const customerId = data.customer_id;
             const customerEmail = data.customer?.email || data.email;
             const subscriptionId = data.subscription_id || data.payment_id;
+            const userId = data.metadata?.userId;
 
-            console.log(`[Subscription Active] Customer Email: ${customerEmail}`);
+            console.log(`[Subscription Success] User: ${userId}, Email: ${customerEmail}`);
 
-            // Look up user by email in your database (this requires users to have emails in user_plans or a users table)
-            // As a workaround since user_plans doesn't have an email column natively, you might have to look up via Auth or store email in user_plans.
-            // Let's assume you store auth emails. For now, we update based on customerId if it exists, or we log a warning.
-            // *Future improvement*: Save the userId securely during checkout creation (e.g. in DodoCustomer metadata if supported)
+            if (userId) {
+                const { error: updateError } = await supabase
+                    .from('user_plans')
+                    .upsert({ 
+                        user_id: userId,
+                        plan: 'pro',
+                        subscription_id: subscriptionId,
+                        dodo_customer_id: customerId,
+                        subscription_status: 'active',
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'user_id' });
 
-            // For simplicity, we just log it here. You must adapt this to your specific User ID resolution strategy.
-            console.log(`Webhook received for email ${customerEmail}. Please ensure userId mapping is correct.`);
-
-            // Example Update (You'll need a way to link customerEmail -> userId in Supabase)
-            /* 
-            await supabase
-               .from('user_plans')
-               .update({ 
-                   plan: 'pro',
-                   subscription_id: subscriptionId,
-                   dodo_customer_id: customerId,
-                   subscription_status: 'active',
-                   updated_at: new Date().toISOString()
-               })
-               .eq('email', customerEmail) // Need an email column!
-            */
+                if (updateError) {
+                    console.error("Error updating user plan in Supabase:", updateError);
+                } else {
+                    console.log(`Successfully upgraded user ${userId} to pro.`);
+                }
+            } else {
+                console.warn("No userId found in webhook metadata, cannot upgrade user.");
+            }
         } else if (event.type === 'subscription.cancelled' || event.type === 'subscription.failed') {
-            // Handle cancellations
+            const userId = data.metadata?.userId;
+            if (userId) {
+                await supabase
+                    .from('user_plans')
+                    .update({ subscription_status: 'cancelled', plan: 'free' })
+                    .eq('user_id', userId);
+            }
         }
 
         res.status(200).json({ received: true });

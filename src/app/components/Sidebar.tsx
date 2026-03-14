@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
+import UpgradeModal from './UpgradeModal';
 import styles from './Sidebar.module.css';
 
 interface SidebarProps {
@@ -13,6 +14,7 @@ export default function Sidebar({ activeItem = 'Analyze Channel' }: SidebarProps
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [userEmail, setUserEmail] = useState<string | null>(null);
     const [userPlan, setUserPlan] = useState<string>('free');
+    const [isUpgradeModalOpen, setUpgradeModalOpen] = useState(false);
     const supabase = createClient();
 
     useEffect(() => {
@@ -137,32 +139,34 @@ export default function Sidebar({ activeItem = 'Analyze Channel' }: SidebarProps
                         {userPlan === 'pro' ? (
                             <div className={styles.proBadge}>⭐ Pro Member</div>
                         ) : (
-                            <button 
-                                className={styles.upgradeBtnSidebar}
-                                onClick={() => {
-                                    // Normally you would open the modal here or redirect to a generalized checkout trigger.
-                                    // For simplicity, we just redirect to the connection page where the modal can trigger, or directly throw an alert.
-                                    // In a full implementation, you'd centralize the checkout function.
-                                    alert("Oops! To upgrade, please click the 'Upgrade to Pro' button inside any of the Pro-locked feature modals (e.g. Script Generator or AI Replies).");
-                                }}
-                            >
-                                💎 Upgrade to Pro
-                            </button>
-                        )}
-                    </div>
-                    {userEmail && <div className={styles.userEmail}>{userEmail}</div>}
-                    <form action="/auth/signout" method="post">
-                        <button className={styles.logoutBtn} type="submit">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16 17 21 12 16 7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
-                            Logout
-                        </button>
-                    </form>
-                </div>
-            </aside>
-        </>
-    );
-}
+                                    <button 
+                                        className={styles.upgradeBtnSidebar}
+                                        onClick={() => setUpgradeModalOpen(true)}
+                                    >
+                                        💎 Upgrade to Pro
+                                    </button>
+                                )}
+                            </div>
+                            {userEmail && <div className={styles.userEmail}>{userEmail}</div>}
+                            <form action="/auth/signout" method="post">
+                                <button className={styles.logoutBtn} type="submit">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                        <polyline points="16 17 21 12 16 7"></polyline>
+                                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                                    </svg>
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
+                    </aside>
+
+                    {isUpgradeModalOpen && (
+                        <UpgradeModal 
+                            feature="Pro Features" 
+                            onClose={() => setUpgradeModalOpen(false)} 
+                        />
+                    )}
+                </>
+            );
+        }

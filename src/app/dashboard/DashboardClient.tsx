@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import Sidebar from '@/app/components/Sidebar';
+import UpgradeModal from '@/app/components/UpgradeModal';
 import styles from './dashboard.module.css';
 
 interface DashboardClientProps {
@@ -13,119 +15,33 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ user, youtubeData, error, channelInput }: DashboardClientProps) {
-    const [isSidebarOpen, setSidebarOpen] = useState(false);
+    const [userPlan, setUserPlan] = useState<string>('free');
+    const [isUpgradeModalOpen, setUpgradeModalOpen] = useState(false);
 
-    const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
-
-    const menuItems = [
-        {
-            name: 'Analyze Channel',
-            href: '/dashboard',
-            icon: (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
-                    <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
-                </svg>
-            )
-        },
-        {
-            name: 'Growth Tips',
-            href: '#',
-            icon: (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                    <polyline points="17 6 23 6 23 12"></polyline>
-                </svg>
-            )
-        },
-        {
-            name: 'Suggest Content Ideas',
-            href: '/suggest-content',
-            icon: (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2v8"></path>
-                    <path d="M16 4.3a8 8 0 1 0-8 0"></path>
-                    <path d="M10 14h4"></path>
-                    <path d="M10 18h4"></path>
-                </svg>
-            )
-        },
-        {
-            name: 'Script Generator',
-            href: '/script-generator',
-            icon: (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <line x1="10" y1="9" x2="8" y2="9"></line>
-                </svg>
-            )
-        },
-    ];
+    useEffect(() => {
+        const fetchPlanStatus = async () => {
+            try {
+                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+                const res = await fetch(`${backendUrl}/subscription-status`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId: user.id })
+                });
+                if (res.ok) {
+                    const result = await res.json();
+                    setUserPlan(result.plan);
+                }
+            } catch (err) {
+                console.error("Failed to fetch plan status", err);
+            }
+        };
+        fetchPlanStatus();
+    }, [user.id]);
 
     return (
         <div className={styles.container}>
-            {/* Mobile Header */}
-            <header className={styles.mobileHeader}>
-                <button className={styles.hamburger} onClick={toggleSidebar}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="3" y1="12" x2="21" y2="12"></line>
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <line x1="3" y1="18" x2="21" y2="18"></line>
-                    </svg>
-                </button>
-                <div className={styles.appName}>Sentitube AI</div>
-                {youtubeData?.channel && (
-                    <div className={styles.mobileChannel}>
-                        <Image
-                            src={youtubeData.channel.profilePicture}
-                            alt={youtubeData.channel.title}
-                            className={styles.mobileChannelPic}
-                            width={32}
-                            height={32}
-                        />
-                        <span>{youtubeData.channel.title}</span>
-                    </div>
-                )}
-            </header>
+            <Sidebar activeItem="Analyze Channel" />
 
-            {/* Overlay */}
-            <div
-                className={`${styles.overlay} ${isSidebarOpen ? styles.overlayVisible : ''}`}
-                onClick={toggleSidebar}
-            />
-
-            {/* Sidebar */}
-            <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ''}`}>
-                <div className={styles.sidebarHeader}>
-                    <div className={styles.appName}>Sentitube AI</div>
-                </div>
-
-                <nav className={styles.nav}>
-                    {menuItems.map((item, i) => (
-                        <Link key={item.name} href={item.href || '#'} className={`${styles.navItem} ${i === 0 ? styles.navItemActive : ''}`}>
-                            {item.icon}
-                            {item.name}
-                        </Link>
-                    ))}
-                </nav>
-
-                <div className={styles.sidebarBottom}>
-                    <div className={styles.userEmail}>{user?.email}</div>
-                    <form action="/auth/signout" method="post">
-                        <button className={styles.logoutBtn} type="submit">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16 17 21 12 16 7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
-                            Logout
-                        </button>
-                    </form>
-                </div>
-            </aside>
 
             {/* Main Content */}
             <main className={styles.main}>
@@ -163,6 +79,42 @@ export default function DashboardClient({ user, youtubeData, error, channelInput
                             )}
                         </div>
 
+                        {userPlan === 'free' && (
+                            <div style={{ 
+                                background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.1) 0%, rgba(79, 70, 229, 0.1) 100%)', 
+                                border: '1px solid rgba(147, 51, 234, 0.2)',
+                                borderRadius: '12px',
+                                padding: '24px',
+                                marginBottom: '32px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '20px'
+                            }}>
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold', color: '#fff' }}>Unlock full potential with Sentitube Pro</h4>
+                                    <p style={{ margin: '8px 0 0', color: '#94a3b8', fontSize: '0.95rem' }}>Get unlimited analysis, script generation and faster AI results.</p>
+                                </div>
+                                <button 
+                                    onClick={() => setUpgradeModalOpen(true)}
+                                    style={{ 
+                                        background: 'linear-gradient(to right, #9333ea, #4f46e5)',
+                                        color: '#fff',
+                                        padding: '12px 24px',
+                                        borderRadius: '8px',
+                                        fontWeight: '600',
+                                        textDecoration: 'none',
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: '0 4px 12px rgba(147, 51, 234, 0.3)',
+                                        border: 'none',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    💎 Upgrade to Pro
+                                </button>
+                            </div>
+                        )}
+
                         <h3 className={styles.sectionHeading}>Select a video to analyze</h3>
 
                         <div className={styles.videoGrid}>
@@ -191,6 +143,13 @@ export default function DashboardClient({ user, youtubeData, error, channelInput
                     </>
                 )}
             </main>
+
+            {isUpgradeModalOpen && (
+                <UpgradeModal 
+                    feature="Premium Features" 
+                    onClose={() => setUpgradeModalOpen(false)} 
+                />
+            )}
         </div>
     );
 }
