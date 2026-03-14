@@ -34,12 +34,92 @@ const app = express();
 app.use(cors({
     origin: ["http://localhost:3000", "https://sentitube.com", "https://www.sentitube.com"]
 }));
-app.use(express.json({ limit: "10mb" }));
 
 // Health check endpoint (required by hosting platforms)
 app.get("/", (req, res) => {
     res.json({ status: "ok", service: "Sentitube Backend", timestamp: new Date().toISOString() });
 });
+
+/* -------------------------------------------------- */
+/* DODO PAYMENTS: WEBHOOK LISTENER                    */
+/* -------------------------------------------------- */
+// CRITICAL: This route MUST be defined BEFORE app.use(express.json()) 
+// so it can receive the unparsed RAW body for signature verification.
+app.post("/webhooks/dodo", express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+        const webhookSecret = process.env.DODO_WEBHOOK_SECRET;
+        const payload = req.body; // Buffer from express.raw()
+        const headers = req.headers;
+
+        const formattedHeaders = {};
+        for (const key in headers) {
+            if (typeof headers[key] === 'string') {
+                formattedHeaders[key] = headers[key]
+            } else if (Array.isArray(headers[key])) {
+                formattedHeaders[key] = headers[key][0]
+            }
+        }
+
+        const wh = new Webhook(webhookSecret);
+        let event;
+        try {
+            event = wh.verify(payload, formattedHeaders);
+        } catch (err) {
+            console.error("Webhook signature verification failed:", err.message);
+            return res.status(400).send(`Webhook Error: ${err.message}`);
+        }
+
+        console.log(`[Webhook Details] Event received: ${event.type}`);
+        const data = event.data;
+
+        if (event.type === 'subscription.active' || event.type === 'payment.succeeded') {
+            const customerId = data.customer_id;
+            const customerEmail = data.customer?.email || data.email;
+            const subscriptionId = data.subscription_id || data.payment_id;
+            const userId = data.metadata?.userId;
+
+            console.log(`[Subscription Success] User: ${userId}, Email: ${customerEmail}`);
+
+            if (userId) {
+                const { error: updateError } = await supabase
+                    .from('user_plans')
+                    .upsert({
+                        user_id: userId,
+                        plan: 'pro',
+                        subscription_id: subscriptionId,
+                        dodo_customer_id: customerId,
+                        subscription_status: 'active',
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'user_id' });
+
+                if (updateError) {
+                    console.error("Error updating user plan in Supabase:", updateError);
+                } else {
+                    console.log(`Successfully upgraded user ${userId} to pro.`);
+                }
+            } else {
+                console.warn("No userId found in webhook metadata, cannot upgrade user.");
+            }
+        } else if (event.type === 'subscription.cancelled' || event.type === 'subscription.failed') {
+            const userId = data.metadata?.userId;
+            if (userId) {
+                await supabase
+                    .from('user_plans')
+                    .update({ subscription_status: 'cancelled', plan: 'free' })
+                    .eq('user_id', userId);
+            }
+        }
+
+        res.status(200).json({ received: true });
+
+    } catch (err) {
+        console.error("Webhook processing error:", err);
+        res.status(500).send("Webhook handler failed.");
+    }
+});
+
+// Apply JSON parser for all other routes
+app.use(express.json({ limit: "10mb" }));
 
 // Debug endpoint to list routes (helpful for troubleshooting 404s)
 const openai = new OpenAI({
@@ -507,92 +587,6 @@ app.post("/create-checkout", async (req, res) => {
             details: err.message,
             stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
         });
-    }
-});
-
-/* -------------------------------------------------- */
-/* DODO PAYMENTS: WEBHOOK LISTENER                    */
-/* -------------------------------------------------- */
-// Important: Webhooks need the RAW body to verify the signature. 
-// Express json middleware (used above) parses it, so we need a specific parser for this route or handle it before the global json middleware.
-// Because the global express.json() is applied at the top, we have to bypass it for this specific route.
-app.post("/webhooks/dodo", express.raw({ type: 'application/json' }), async (req, res) => {
-    try {
-        const webhookSecret = process.env.DODO_WEBHOOK_SECRET;
-        const payload = req.body; // This is now a raw Buffer thanks to express.raw()
-        const headers = req.headers;
-
-        // Note: standardwebhooks expects the headers to be a Record<string, string>
-        // Express headers are sometimes string[], so we ensure they are string
-        const formattedHeaders = {};
-        for (const key in headers) {
-            if (typeof headers[key] === 'string') {
-                formattedHeaders[key] = headers[key]
-            } else if (Array.isArray(headers[key])) {
-                formattedHeaders[key] = headers[key][0]
-            }
-        }
-
-        const wh = new Webhook(webhookSecret);
-
-        let event;
-        try {
-            // Verify the payload signature
-            event = wh.verify(payload, formattedHeaders);
-        } catch (err) {
-            console.error("Webhook signature verification failed:", err.message);
-            return res.status(400).send(`Webhook Error: ${err.message}`);
-        }
-
-        console.log(`[Webhook Details] Event type: ${event.type}`);
-
-        const data = event.data;
-
-        // Handle subscription events (Note: The exact event names might differ based on DodoPayments API version, 
-        // usually they are structured like 'subscription.active', 'payment.succeeded' etc. Please verify with their docs.)
-        if (event.type === 'subscription.active' || event.type === 'payment.succeeded') {
-            const customerId = data.customer_id;
-            const customerEmail = data.customer?.email || data.email;
-            const subscriptionId = data.subscription_id || data.payment_id;
-            const userId = data.metadata?.userId;
-
-            console.log(`[Subscription Success] User: ${userId}, Email: ${customerEmail}`);
-
-            if (userId) {
-                const { error: updateError } = await supabase
-                    .from('user_plans')
-                    .upsert({ 
-                        user_id: userId,
-                        plan: 'pro',
-                        subscription_id: subscriptionId,
-                        dodo_customer_id: customerId,
-                        subscription_status: 'active',
-                        updated_at: new Date().toISOString()
-                    }, { onConflict: 'user_id' });
-
-                if (updateError) {
-                    console.error("Error updating user plan in Supabase:", updateError);
-                } else {
-                    console.log(`Successfully upgraded user ${userId} to pro.`);
-                }
-            } else {
-                console.warn("No userId found in webhook metadata, cannot upgrade user.");
-            }
-        } else if (event.type === 'subscription.cancelled' || event.type === 'subscription.failed') {
-            const userId = data.metadata?.userId;
-            if (userId) {
-                await supabase
-                    .from('user_plans')
-                    .update({ subscription_status: 'cancelled', plan: 'free' })
-                    .eq('user_id', userId);
-            }
-        }
-
-        res.status(200).json({ received: true });
-
-    } catch (err) {
-        console.error("Webhook processing error:", err);
-        res.status(500).send("Webhook handler failed.");
     }
 });
 
