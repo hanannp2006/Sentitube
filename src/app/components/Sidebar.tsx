@@ -14,6 +14,7 @@ export default function Sidebar({ activeItem = 'Analyze Channel' }: SidebarProps
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [userEmail, setUserEmail] = useState<string | null>(null);
     const [userPlan, setUserPlan] = useState<string>('free');
+    const [isLoadingPlan, setIsLoadingPlan] = useState(true);
     const [isUpgradeModalOpen, setUpgradeModalOpen] = useState(false);
     const supabase = createClient();
 
@@ -37,7 +38,11 @@ export default function Sidebar({ activeItem = 'Analyze Channel' }: SidebarProps
                     }
                 } catch (err) {
                     console.error("Failed to fetch plan status", err);
+                } finally {
+                    setIsLoadingPlan(false);
                 }
+            } else {
+                setIsLoadingPlan(false);
             }
         };
         getUserAndPlan();
@@ -136,16 +141,18 @@ export default function Sidebar({ activeItem = 'Analyze Channel' }: SidebarProps
 
                 <div className={styles.sidebarBottom}>
                     <div className={styles.planContainer}>
-                        {userPlan === 'pro' ? (
+                        {isLoadingPlan ? (
+                            <div className={styles.planLoading}>Checking status...</div>
+                        ) : userPlan === 'pro' ? (
                             <div className={styles.proBadge}>⭐ Pro Member</div>
                         ) : (
-                                    <button 
-                                        className={styles.upgradeBtnSidebar}
-                                        onClick={() => setUpgradeModalOpen(true)}
-                                    >
-                                        💎 Upgrade to Pro
-                                    </button>
-                                )}
+                            <button 
+                                className={styles.upgradeBtnSidebar}
+                                onClick={() => setUpgradeModalOpen(true)}
+                            >
+                                💎 Upgrade to Pro
+                            </button>
+                        )}
                             </div>
                             {userEmail && <div className={styles.userEmail}>{userEmail}</div>}
                             <form action="/auth/signout" method="post">

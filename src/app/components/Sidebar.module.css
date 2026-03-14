@@ -176,3 +176,10 @@
     border-color: rgba(168, 85, 247, 0.5);
     box-shadow: 0 0 12px rgba(168, 85, 247, 0.2);
 }
+
+.planLoading {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+    padding: 8px;
+}
