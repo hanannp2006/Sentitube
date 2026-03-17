@@ -20,7 +20,7 @@ export default function PrivacyPolicy() {
                 {/* Header */}
                 <header className={styles.header}>
                     <h1 className={styles.title}>Privacy Policy</h1>
-                    <p className={styles.lastUpdated}>Last Updated: March 03, 2026</p>
+                    <p className={styles.lastUpdated}>Last Updated: March 16, 2026</p>
                 </header>
 
                 {/* Content Section */}
@@ -89,7 +89,23 @@ export default function PrivacyPolicy() {
                 </section>
 
                 <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>3. AI Processing</h2>
+                    <h2 className={styles.sectionTitle}>3. OAuth & YouTube Integration</h2>
+                    <p className={styles.text}>Sentitube uses Google OAuth 2.0 to securely connect to your YouTube account.</p>
+                    <p className={styles.text}>We access YouTube data (such as comments and basic video information) only after explicit user authorization.</p>
+                    <p className={styles.text}>This data is used solely to:</p>
+                    <ul className={styles.list}>
+                        <li className={styles.listItem}>Retrieve comments from your own YouTube videos</li>
+                        <li className={styles.listItem}>Analyze sentiment and engagement</li>
+                        <li className={styles.listItem}>Generate AI-based reply suggestions</li>
+                        <li className={styles.listItem}>Allow you to post replies to comments</li>
+                    </ul>
+                    <p className={styles.text}>All YouTube data is processed in real-time and is not stored for long-term use. We do not use this data for advertising or for training AI models.</p>
+                    <p className={styles.text}>YouTube data is processed only as needed to provide core features such as sentiment analysis and reply suggestions. This processing is performed securely and is not used for any purpose other than delivering the requested functionality.</p>
+                    <p className={styles.text}>We never store your Google password. You may revoke access at any time via your Google Account permissions page. Once access is revoked, Sentitube will no longer be able to access or interact with your YouTube data.</p>
+                </section>
+
+                <section className={styles.section}>
+                    <h2 className={styles.sectionTitle}>4. AI Processing</h2>
                     <p className={styles.text}>Sentitube uses AI models to process:</p>
                     <ul className={styles.list}>
                         <li className={styles.listItem}>Video titles</li>
@@ -98,16 +114,6 @@ export default function PrivacyPolicy() {
                     </ul>
                     <p className={styles.text}>This processing is used solely to generate insights, reports, and suggested replies.</p>
                     <p className={styles.text}>We do not use your data to train external AI models beyond what is required to provide the service.</p>
-                </section>
-
-                <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>4. OAuth & YouTube Integration</h2>
-                    <p className={styles.text}>Sentitube uses Google OAuth 2.0 for secure YouTube integration.</p>
-                    <ul className={styles.list}>
-                        <li className={styles.listItem}>We never store your Google password.</li>
-                        <li className={styles.listItem}>You may revoke access at any time via your Google Account permissions page.</li>
-                        <li className={styles.listItem}>If you revoke access, Sentitube will no longer be able to access or post to your YouTube channel.</li>
-                    </ul>
                 </section>
 
                 <section className={styles.section}>
@@ -209,7 +215,7 @@ export default function PrivacyPolicy() {
                         <a href="mailto:sentitubeai@gmail.com" className={styles.contactEmail}>sentitubeai@gmail.com</a>
                     </p>
                     <p className={styles.text} style={{ color: 'white' }}>
-                        Website: <span className={styles.contactEmail}>sentitubeai.com</span>
+                        Website: <span className={styles.contactEmail}>sentitube.com</span>
                     </p>
                 </section>
 

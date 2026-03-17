@@ -208,7 +208,7 @@ export default function TermsOfService() {
                         <a href="mailto:sentitubeai@gmail.com" className={styles.contactEmail}>sentitubeai@gmail.com</a>
                     </p>
                     <p className={styles.text} style={{ color: 'white' }}>
-                        Website: <span className={styles.contactEmail}>sentitubeai.com</span>
+                        Website: <span className={styles.contactEmail}>sentitube.com</span>
                     </p>
                 </section>
 
