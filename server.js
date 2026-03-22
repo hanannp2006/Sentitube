@@ -129,7 +129,7 @@ const openai = new OpenAI({
 // Initialize DodoPayments Client
 const dodoClient = new DodoPayments({
     bearerToken: process.env.DODO_API_KEY,
-    environment: 'test_mode'
+    environment: 'live_mode'
 });
 
 /* -------------------------------------------------- */
