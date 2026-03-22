@@ -120,7 +120,7 @@ export default function SmartRepliesPage() {
             setError('');
             setCategorizedComments([]);
 
-            // 1. Fetch comments (now returns {id, text, alreadyReplied} objects)
+            // 1. Fetch fresh comments (metadata only)
             const fetchRes = await fetch(`${backendUrl}/fetch-comments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -134,16 +134,15 @@ export default function SmartRepliesPage() {
                 return;
             }
 
-            // Remove duplicates by text and slice to first 50
+            // Remove duplicates and slice to 50
             const seen = new Set<string>();
             const uniqueComments: { id: string; text: string; replyCount: number; alreadyReplied: boolean }[] = [];
             for (const c of rawComments) {
                 const text = typeof c === 'string' ? c : c.text;
-                const id = typeof c === 'string' ? '' : c.id;
                 if (!seen.has(text)) {
                     seen.add(text);
                     uniqueComments.push({
-                        id,
+                        id: typeof c === 'string' ? '' : c.id,
                         text,
                         replyCount: typeof c === 'string' ? 0 : (c.replyCount || 0),
                         alreadyReplied: typeof c === 'string' ? false : !!c.alreadyReplied
@@ -152,13 +151,43 @@ export default function SmartRepliesPage() {
             }
             const targetComments = uniqueComments.slice(0, 50);
 
-            const mid = Math.ceil(targetComments.length / 2);
-            const chunk1 = targetComments.slice(0, mid);
-            const chunk2 = targetComments.slice(mid);
+            // 2. Check Sentiment Cache
+            const cacheKey = `sentiment_map_${videoId}`;
+            const cachedMapRaw = sessionStorage.getItem(cacheKey);
+            const cachedMap = cachedMapRaw ? JSON.parse(cachedMapRaw) : {};
 
-            // 2. Categorize comments in parallel
+            const resolvedComments: CategorizedComment[] = [];
+            const missingComments: typeof targetComments = [];
+
+            targetComments.forEach(c => {
+                if (cachedMap[c.text]) {
+                    resolvedComments.push({
+                        ...c,
+                        sentiment: cachedMap[c.text]
+                    } as CategorizedComment);
+                } else {
+                    missingComments.push(c);
+                }
+            });
+
+            // Set immediately with whatever we found in cache
+            if (resolvedComments.length > 0) {
+                setCategorizedComments(resolvedComments);
+            }
+
+            // If everything was cached, we are done
+            if (missingComments.length === 0) {
+                setLoading(false);
+                return;
+            }
+
+            // 3. Process MISSING comments in chunks
+            const mid = Math.ceil(missingComments.length / 2);
+            const chunk1 = missingComments.slice(0, mid);
+            const chunk2 = missingComments.slice(mid);
+
             let completedChunks = 0;
-            const processChunk = async (chunk: { id: string; text: string; replyCount: number; alreadyReplied: boolean }[]) => {
+            const processChunk = async (chunk: typeof targetComments) => {
                 if (chunk.length === 0) return;
                 try {
                     const categorizeRes = await fetch(`${backendUrl}/categorize-comments`, {
@@ -167,15 +196,22 @@ export default function SmartRepliesPage() {
                         body: JSON.stringify({ comments: chunk.map(c => c.text), userId: currentUserId || userId }),
                     });
 
-                    // Handle quota limit
                     if (categorizeRes.status === 429) {
                         setLimitedFeature('sentiment classifications');
                         setShowUpgradeModal(true);
                         setLoading(false);
                         return;
                     }
+
                     const { categorized } = await categorizeRes.json();
-                    // Merge Metadata back into categorized results
+
+                    // Update sessionStorage cache with new sentiments
+                    const currentCache = JSON.parse(sessionStorage.getItem(cacheKey) || '{}');
+                    categorized.forEach((cat: any) => {
+                        currentCache[cat.text] = cat.sentiment;
+                    });
+                    sessionStorage.setItem(cacheKey, JSON.stringify(currentCache));
+
                     const withMetadata = (categorized || []).map((cat: { text: string; sentiment: string }, i: number) => ({
                         id: chunk[i]?.id || '',
                         text: cat.text,
@@ -199,7 +235,7 @@ export default function SmartRepliesPage() {
 
         } catch (err) {
             console.error('Error fetching replies:', err);
-            setError('Failed to load comment sentiments. Make sure the backend is running.');
+            setError('Failed to load comment sentiments.');
             setLoading(false);
         }
     };

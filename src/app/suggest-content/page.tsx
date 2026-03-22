@@ -129,14 +129,14 @@ export default function SuggestContentPage() {
                 <div className={styles.titleSection}>
                     <h1 className={styles.heading}>Growth-Driven Content Ideas</h1>
                     <p className={styles.subheading}>
-                        Personalized suggestions based on your channel's recent performance and audience signals.
+                        Content idea suggestions based on your channel's recent performance and audience signals.
                     </p>
                 </div>
 
                 {loading ? (
                     <div className={styles.loadingContainer}>
                         <div className={styles.spinner}></div>
-                        <p>Analyzing channel performance...</p>
+                        <p>Suggesting your Next viral content...</p>
                     </div>
                 ) : error ? (
                     <div className={styles.errorContainer}>

@@ -146,7 +146,7 @@ const supabase = createClient(
 const USAGE_LIMITS = {
     free: {
         analysis: 2,
-        categorize: 2,
+        categorize: 5,
         smart_reply: 5,
         content_ideas: 2,
         script: 1,
