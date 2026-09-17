@@ -1,31 +1,18 @@
 {
-  "name": "youtube-sentiment",
+  "name": "sentitube",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "node server.js",
-    "next:start": "next start",
-    "lint": "eslint",
-    "server": "node server.js"
+    "start": "next start",
+    "lint": "eslint"
   },
   "dependencies": {
-    "@supabase/auth-helpers-nextjs": "^0.15.0",
-    "@supabase/ssr": "^0.8.0",
-    "@supabase/supabase-js": "^2.93.3",
-    "cors": "^2.8.6",
-    "dodopayments": "^2.23.2",
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1",
-    "googleapis": "^171.4.0",
-    "nanoid": "^5.1.6",
     "next": "16.1.6",
-    "openai": "^6.17.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "standardwebhooks": "^1.0.0"
+    "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@types/node": "^20",
